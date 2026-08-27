@@ -14,6 +14,7 @@ function gameover.new(sm)
 end
 
 function gameover.enter(_)
+  retro.reset_offset()
 end
 
 function gameover.update(_, _dt)

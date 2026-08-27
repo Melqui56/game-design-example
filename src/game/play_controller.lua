@@ -1,13 +1,15 @@
-local bullet   = require("src.core.bullet")
-local enemy    = require("src.core.enemy")
-local palette  = require("src.core.palette")
-local player   = require("src.core.player")
-local waves    = require("src.core.waves")
-local backdrop = require("src.fw.backdrop")
-local input    = require("src.fw.input")
-local render   = require("src.fw.render")
-local retro    = require("src.fw.retro")
-local ui       = require("src.fw.ui")
+local bullet    = require("src.core.bullet")
+local enemy     = require("src.core.enemy")
+local palette   = require("src.core.palette")
+local particles = require("src.core.particles")
+local player    = require("src.core.player")
+local shake     = require("src.core.shake")
+local waves     = require("src.core.waves")
+local backdrop  = require("src.fw.backdrop")
+local input     = require("src.fw.input")
+local render    = require("src.fw.render")
+local retro     = require("src.fw.retro")
+local ui        = require("src.fw.ui")
 
 local FIRE_INTERVAL = 0.22
 
@@ -19,6 +21,7 @@ end
 
 function play.enter(self)
   local w, h = retro.getDimensions()
+  retro.reset_offset()
   self.area       = { minX = 0, minY = 0, maxX = w, maxY = h }
   self.wave       = 1
   self.spawns     = waves.plan(self.wave, self.area)
@@ -26,6 +29,8 @@ function play.enter(self)
   self.enemies    = {}
   self.bullets    = {}
   self.fire_timer = 0
+  self.particles  = particles.new()
+  self.shake      = shake.new()
   self.player     = player.new({ x = w * 0.5, y = h * 0.5 })
 end
 
@@ -71,6 +76,8 @@ function play.update(self, dt)
       end
     end
     if hit and enemy.take_damage(e, 1) then
+      particles.burst(self.particles, e.position.x, e.position.y, { count = 10 })
+      shake.add(self.shake, 0.3)
       table.remove(self.enemies, ei)
     end
     ei = ei - 1
@@ -81,6 +88,7 @@ function play.update(self, dt)
     local e = self.enemies[ci]
     if enemy.touches(e, self.player) then
       player.take_damage(self.player, 1)
+      shake.add(self.shake, 0.45)
       table.remove(self.enemies, ci)
     end
     ci = ci - 1
@@ -96,6 +104,11 @@ function play.update(self, dt)
     self.spawns     = waves.plan(self.wave, self.area)
     self.wave_timer = 0
   end
+
+  particles.update(self.particles, dt)
+  shake.update(self.shake, dt)
+  local off = shake.offset(self.shake)
+  retro.set_offset(off.x, off.y)
 end
 
 function play.draw(self)
@@ -105,6 +118,7 @@ function play.draw(self)
   for _, b in ipairs(self.bullets) do
     render.bullet(b)
   end
+  render.particles(self.particles.list)
   for _, e in ipairs(self.enemies) do
     render.enemy(e)
   end

@@ -16,6 +16,7 @@ function main_menu.new(sm)
 end
 
 function main_menu.enter(_)
+  retro.reset_offset()
 end
 
 function main_menu.update(self, dt)

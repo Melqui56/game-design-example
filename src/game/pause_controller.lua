@@ -14,6 +14,7 @@ function pause.new(sm)
 end
 
 function pause.enter(_)
+  retro.reset_offset()
 end
 
 function pause.update(_, _dt)

@@ -2,9 +2,20 @@ local retro = {}
 
 local VW, VH = 480, 270
 local canvas = nil
+local offx, offy = 0, 0
 
 function retro.getDimensions()
   return VW, VH
+end
+
+function retro.set_offset(x, y)
+  offx = x or 0
+  offy = y or 0
+end
+
+function retro.reset_offset()
+  offx = 0
+  offy = 0
 end
 
 function retro.begin()
@@ -24,7 +35,7 @@ function retro.finish()
   local ox = math.floor((w - VW * scale) * 0.5)
   local oy = math.floor((h - VH * scale) * 0.5)
   love.graphics.setColor(1, 1, 1, 1)
-  love.graphics.draw(canvas, ox, oy, 0, scale, scale)
+  love.graphics.draw(canvas, ox + offx, oy + offy, 0, scale, scale)
 end
 
 return retro

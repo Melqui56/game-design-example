@@ -31,4 +31,12 @@ function render.bullet(b)
   love.graphics.rectangle("fill", b.position.x - 1, b.position.y - 1, 2, 2)
 end
 
+function render.particles(list)
+  for _, p in ipairs(list) do
+    local t = p.life / p.max_life
+    love.graphics.setColor(palette.enemy[1], palette.enemy[2], palette.enemy[3], t)
+    love.graphics.rectangle("fill", p.x - p.size * 0.5, p.y - p.size * 0.5, p.size, p.size)
+  end
+end
+
 return render
