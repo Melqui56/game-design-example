@@ -1,5 +1,6 @@
 local vec2 = require("src.core.vec2")
 local fsm  = require("src.core.fsm")
+local anim = require("src.core.anim")
 
 local enemy = {}
 
@@ -50,6 +51,7 @@ function enemy.new(kind, x, y, opts)
     target   = { x = 0, y = 0 },
     dead     = false,
     flash    = false,
+    anim     = anim.new(2, 5),
   }
   self.fsm = fsm.new(states, "chase", self)
   return self
@@ -58,6 +60,7 @@ end
 function enemy.update(self, target, dt)
   self.target = target
   fsm.update(self.fsm, dt)
+  anim.update(self.anim, dt)
   return self
 end
 

@@ -1,4 +1,5 @@
 local palette = require("src.core.palette")
+local sprites = require("src.fw.sprites")
 
 local render = {}
 
@@ -6,58 +7,49 @@ local function set_color(c)
   love.graphics.setColor(c[1], c[2], c[3])
 end
 
-function render.player(p)
-  local x = p.position.x - p.size * 0.5
-  local y = p.position.y - p.size * 0.5
-  if p.flash then
-    love.graphics.setColor(1, 1, 1, 0.85)
-  else
-    set_color(palette.player)
+function render.cowboy(p, moving, muzzle)
+  sprites.ensure()
+  local frames = p.flash and sprites.cowboy_flash or sprites.cowboy
+  local a = moving and p.walk_anim or p.idle_anim
+  local img = frames[a.frame]
+  local w = img:getWidth()
+  local h = img:getHeight()
+  local sx = 1
+  if p.aim.x < 0 then
+    sx = -1
   end
-  love.graphics.rectangle("fill", x, y, p.size, p.size)
-  set_color(palette.outline)
-  love.graphics.rectangle("line", x, y, p.size, p.size)
-  love.graphics.setColor(1, 1, 1, 0.25)
-  love.graphics.rectangle("fill", x + 2, y + 2, p.size - 4, 3)
+  love.graphics.setColor(1, 1, 1, 1)
+  love.graphics.draw(img, p.position.x, p.position.y, 0, sx, 1, w * 0.5, h * 0.5)
 
-  local nx = p.position.x + p.aim.x * (p.size * 0.5)
-  local ny = p.position.y + p.aim.y * (p.size * 0.5)
-  love.graphics.setColor(palette.eye[1], palette.eye[2], palette.eye[3])
-  love.graphics.rectangle("fill", nx - 1, ny - 1, 2, 2)
+  local bx = p.position.x + p.aim.x * 6
+  local by = p.position.y + p.aim.y * 6
+  set_color(palette.boot)
+  love.graphics.rectangle("fill", bx - 1, by - 1, 2, 4)
+
+  if muzzle and muzzle > 0 then
+    set_color(palette.muzzle)
+    love.graphics.rectangle("fill", p.position.x + p.aim.x * 10 - 2, p.position.y + p.aim.y * 10 - 2, 4, 4)
+  end
 end
 
-function render.enemy(e)
-  if e.flash then
-    love.graphics.setColor(palette.eye[1], palette.eye[2], palette.eye[3])
-  else
-    set_color(palette.enemy)
+function render.zombie(e)
+  sprites.ensure()
+  local frames = e.flash and sprites.zombie_flash or sprites.zombie
+  local img = frames[e.anim.frame] or frames[1]
+  local w = img:getWidth()
+  local h = img:getHeight()
+  local sx = 1
+  if e.target.x < e.position.x then
+    sx = -1
   end
-  love.graphics.circle("fill", e.position.x, e.position.y, e.radius)
-  set_color(palette.outline)
-  love.graphics.circle("line", e.position.x, e.position.y, e.radius)
-
-  love.graphics.setColor(palette.outline[1], palette.outline[2], palette.outline[3], 0.5)
-  love.graphics.circle("fill", e.position.x, e.position.y, e.radius * 0.35)
-
-  local dx = e.target.x - e.position.x
-  local dy = e.target.y - e.position.y
-  local len = math.sqrt(dx * dx + dy * dy)
-  local ux, uy = 0, -1
-  if len > 0 then
-    ux, uy = dx / len, dy / len
-  end
-  local px, py = -uy, ux
-  local cx = e.position.x + ux * e.radius * 0.55
-  local cy = e.position.y + uy * e.radius * 0.55
-  set_color(palette.eye)
-  love.graphics.rectangle("fill", cx + px * 2 - 1, cy + py * 2 - 1, 2, 2)
-  love.graphics.rectangle("fill", cx - px * 2 - 1, cy - py * 2 - 1, 2, 2)
+  love.graphics.setColor(1, 1, 1, 1)
+  love.graphics.draw(img, e.position.x, e.position.y, 0, sx, 1, w * 0.5, h * 0.5)
 end
 
 function render.bullet(b)
   love.graphics.setColor(1, 1, 1, 0.9)
   love.graphics.rectangle("fill", b.position.x - b.radius, b.position.y - b.radius, b.radius * 2, b.radius * 2)
-  set_color(palette.accent)
+  set_color(palette.muzzle)
   love.graphics.rectangle("fill", b.position.x - 1, b.position.y - 1, 2, 2)
 end
 
@@ -94,7 +86,7 @@ end
 function render.particles(list)
   for _, p in ipairs(list) do
     local t = p.life / p.max_life
-    love.graphics.setColor(palette.enemy[1], palette.enemy[2], palette.enemy[3], t)
+    love.graphics.setColor(palette.zombie[1], palette.zombie[2], palette.zombie[3], t)
     love.graphics.rectangle("fill", p.x - p.size * 0.5, p.y - p.size * 0.5, p.size, p.size)
   end
 end

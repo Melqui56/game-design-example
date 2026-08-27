@@ -1,0 +1,27 @@
+local anim = require("src.core.anim")
+
+describe("anim", function()
+  it("starts on frame 1", function()
+    local a = anim.new(4, 10)
+    assert.are.equal(1, a.frame)
+  end)
+
+  it("advances one frame per frame_time", function()
+    local a = anim.new(4, 10)
+    anim.update(a, 0.1)
+    assert.are.equal(2, a.frame)
+  end)
+
+  it("loops back to the first frame", function()
+    local a = anim.new(2, 10)
+    anim.update(a, 0.2)
+    assert.are.equal(1, a.frame)
+  end)
+
+  it("stops on the last frame when not looping", function()
+    local a = anim.new(3, 10, { loop = false })
+    anim.update(a, 0.5)
+    assert.are.equal(3, a.frame)
+    assert.is_true(a.done)
+  end)
+end)

@@ -7,16 +7,33 @@ local shake     = require("src.core.shake")
 local waves     = require("src.core.waves")
 local backdrop  = require("src.fw.backdrop")
 local input     = require("src.fw.input")
+local light     = require("src.fw.light")
 local render    = require("src.fw.render")
 local retro     = require("src.fw.retro")
 local ui        = require("src.fw.ui")
 
-local FIRE_INTERVAL = 0.22
+local FIRE_INTERVAL = 0.16
+local BULLET_SPEED  = 320
 
 local play = {}
 
 function play.new(sm)
   return setmetatable({ sm = sm }, { __index = play })
+end
+
+local function nearest_enemy(self)
+  local target = nil
+  local best = math.huge
+  for _, e in ipairs(self.enemies) do
+    local dx = e.position.x - self.player.position.x
+    local dy = e.position.y - self.player.position.y
+    local d = dx * dx + dy * dy
+    if d < best then
+      best = d
+      target = e
+    end
+  end
+  return target
 end
 
 function play.enter(self)
@@ -29,6 +46,8 @@ function play.enter(self)
   self.enemies    = {}
   self.bullets    = {}
   self.fire_timer = 0
+  self.muzzle     = 0
+  self.moving     = false
   self.particles  = particles.new()
   self.shake      = shake.new()
   self.score      = 0
@@ -38,12 +57,27 @@ end
 function play.update(self, dt)
   local state = input.snapshot()
   player.update(self.player, state, dt, self.area)
-  self.player.aim = player.facing(state)
+
+  self.moving = state.up or state.down or state.left or state.right
+  local target = nearest_enemy(self)
+  if target then
+    local dx = target.position.x - self.player.position.x
+    local dy = target.position.y - self.player.position.y
+    local len = math.sqrt(dx * dx + dy * dy)
+    if len > 0 then
+      self.player.aim = { x = dx / len, y = dy / len }
+    end
+  else
+    self.player.aim = player.facing(state)
+  end
 
   self.fire_timer = self.fire_timer - dt
+  self.muzzle     = self.muzzle - dt
   if state.shoot and self.fire_timer <= 0 then
-    table.insert(self.bullets, bullet.new(self.player.position.x, self.player.position.y, self.player.aim))
+    table.insert(self.bullets, bullet.new(
+      self.player.position.x, self.player.position.y, self.player.aim, { speed = BULLET_SPEED }))
     self.fire_timer = FIRE_INTERVAL
+    self.muzzle     = 0.08
   end
 
   self.wave_timer = self.wave_timer + dt
@@ -124,14 +158,18 @@ end
 function play.draw(self)
   local w, h = retro.getDimensions()
   backdrop.draw(palette, w, h)
-  render.player(self.player)
+  render.cowboy(self.player, self.moving, self.muzzle)
   for _, b in ipairs(self.bullets) do
     render.bullet(b)
   end
   render.particles(self.particles.list)
   for _, e in ipairs(self.enemies) do
-    render.enemy(e)
+    render.zombie(e)
   end
+
+  love.graphics.setColor(0, 0, 0, 0.55)
+  love.graphics.rectangle("fill", 0, 0, w, h)
+  light.draw(self.player.position)
 
   love.graphics.setColor(0, 0, 0, 0.45)
   love.graphics.rectangle("fill", 0, 0, w, 13)

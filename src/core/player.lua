@@ -1,5 +1,6 @@
 local vec2 = require("src.core.vec2")
 local fsm  = require("src.core.fsm")
+local anim = require("src.core.anim")
 
 local player = {}
 
@@ -41,6 +42,8 @@ function player.new(opts)
     max_hp   = o.hp or DEFAULTS.hp,
     flash    = false,
     aim      = { x = 0, y = -1 },
+    idle_anim = anim.new(2, 4),
+    walk_anim = anim.new(2, 8),
   }
   self.fsm = fsm.new(states, "alive", self)
   return self
@@ -65,6 +68,8 @@ function player.update(self, input, dt, bounds)
   end
 
   fsm.update(self.fsm, dt)
+  anim.update(self.idle_anim, dt)
+  anim.update(self.walk_anim, dt)
   return self
 end
 
