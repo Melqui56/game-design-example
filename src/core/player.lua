@@ -38,6 +38,7 @@ function player.new(opts)
     radius   = size * 0.5,
     speed    = o.speed or DEFAULTS.speed,
     hp       = o.hp or DEFAULTS.hp,
+    max_hp   = o.hp or DEFAULTS.hp,
     flash    = false,
     aim      = { x = 0, y = -1 },
   }

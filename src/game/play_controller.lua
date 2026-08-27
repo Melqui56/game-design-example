@@ -31,6 +31,7 @@ function play.enter(self)
   self.fire_timer = 0
   self.particles  = particles.new()
   self.shake      = shake.new()
+  self.score      = 0
   self.player     = player.new({ x = w * 0.5, y = h * 0.5 })
 end
 
@@ -85,6 +86,7 @@ function play.update(self, dt)
       if enemy.take_damage(e, 1) then
         particles.burst(self.particles, e.position.x, e.position.y, { count = 10 })
         shake.add(self.shake, 0.3)
+        self.score = self.score + 10
       end
     end
     k = k - 1
@@ -130,7 +132,12 @@ function play.draw(self)
   for _, e in ipairs(self.enemies) do
     render.enemy(e)
   end
-  ui.hud_text("HP " .. self.player.hp .. "  WAVE " .. self.wave, 4, 4)
+
+  love.graphics.setColor(0, 0, 0, 0.45)
+  love.graphics.rectangle("fill", 0, 0, w, 13)
+  render.hearts(self.player.hp, self.player.max_hp, 4, 3)
+  ui.hud_text_centered("WAVE " .. self.wave, w * 0.5, 2)
+  ui.hud_text_right("SCORE " .. self.score, w - 4, 2)
 end
 
 function play.keypressed(self, key)

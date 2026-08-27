@@ -61,6 +61,36 @@ function render.bullet(b)
   love.graphics.rectangle("fill", b.position.x - 1, b.position.y - 1, 2, 2)
 end
 
+local HEART = {
+  ".XX.XX.",
+  "XXXXXXX",
+  "XXXXXXX",
+  ".XXXXX.",
+  "..XXX..",
+  "...X...",
+}
+
+function render.icon(sprite, x, y, color)
+  love.graphics.setColor(color[1], color[2], color[3])
+  for row, line in ipairs(sprite) do
+    for col = 1, #line do
+      if line:sub(col, col) == "X" then
+        love.graphics.rectangle("fill", x + col - 1, y + row - 1, 1, 1)
+      end
+    end
+  end
+end
+
+function render.hearts(amount, max, x, y)
+  for i = 1, max do
+    if i <= amount then
+      render.icon(HEART, x + (i - 1) * 9, y, palette.danger)
+    else
+      render.icon(HEART, x + (i - 1) * 9, y, palette.muted)
+    end
+  end
+end
+
 function render.particles(list)
   for _, p in ipairs(list) do
     local t = p.life / p.max_life

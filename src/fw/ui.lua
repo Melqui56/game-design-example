@@ -58,4 +58,22 @@ function ui.hud_text(text, x, y)
   love.graphics.print(text, x, y)
 end
 
+function ui.hud_text_right(text, x_right, y)
+  love.graphics.setFont(font(10))
+  local x = x_right - love.graphics.getFont():getWidth(text)
+  set_color(palette.shadow)
+  love.graphics.print(text, x + 1, y + 1)
+  set_color(palette.text)
+  love.graphics.print(text, x, y)
+end
+
+function ui.hud_text_centered(text, cx, y)
+  love.graphics.setFont(font(10))
+  local x = cx - love.graphics.getFont():getWidth(text) * 0.5
+  set_color(palette.shadow)
+  love.graphics.print(text, x + 1, y + 1)
+  set_color(palette.text)
+  love.graphics.print(text, x, y)
+end
+
 return ui
