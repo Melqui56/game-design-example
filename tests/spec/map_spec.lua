@@ -27,3 +27,16 @@ describe("map", function()
     end
   end)
 end)
+
+describe("map.town", function()
+  it("places buildings inside the world", function()
+    local area = { minX = 0, minY = 0, maxX = 960, maxY = 540 }
+    local buildings = map.town(area, 8, stub_rng)
+    assert.are.equal(8, #buildings)
+    for _, b in ipairs(buildings) do
+      assert.is_true(b.x >= area.minX and b.x <= area.maxX)
+      assert.is_true(b.y >= area.minY and b.y <= area.maxY)
+      assert.is_true(b.w > 0 and b.h > 0)
+    end
+  end)
+end)

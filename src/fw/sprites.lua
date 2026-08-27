@@ -122,6 +122,8 @@ local function build_image(rows, map)
   local w = #rows[1]
   local c = love.graphics.newCanvas(w, h)
   c:setFilter("nearest", "nearest")
+  love.graphics.push()
+  love.graphics.origin()
   love.graphics.setCanvas(c)
   for y, line in ipairs(rows) do
     for x = 1, #line do
@@ -133,6 +135,7 @@ local function build_image(rows, map)
     end
   end
   love.graphics.setCanvas()
+  love.graphics.pop()
   return c
 end
 
@@ -141,6 +144,8 @@ local function build_flash(rows)
   local w = #rows[1]
   local c = love.graphics.newCanvas(w, h)
   c:setFilter("nearest", "nearest")
+  love.graphics.push()
+  love.graphics.origin()
   love.graphics.setCanvas(c)
   for y, line in ipairs(rows) do
     for x = 1, #line do
@@ -151,6 +156,7 @@ local function build_flash(rows)
     end
   end
   love.graphics.setCanvas()
+  love.graphics.pop()
   return c
 end
 

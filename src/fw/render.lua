@@ -18,20 +18,62 @@ local function shadow(x, y, rx, ry)
   love.graphics.ellipse("fill", x, y, rx, ry)
 end
 
-function render.ground(w, h)
-  love.graphics.setColor(0, 0, 0, 0.10)
-  local horizon = math.floor(h * 0.22)
-  local depth = h - horizon
-  for i = 1, 10 do
-    local t = i / 10
-    local y = horizon + depth * t * t
-    love.graphics.line(0, y, w, y)
+local ground_tile_cache = nil
+
+local function ground_tile()
+  if not ground_tile_cache then
+    ground_tile_cache = love.graphics.newCanvas(16, 16)
+    ground_tile_cache:setFilter("nearest", "nearest")
+    love.graphics.push()
+    love.graphics.origin()
+    love.graphics.setCanvas(ground_tile_cache)
+    love.graphics.setColor(0.13, 0.12, 0.10)
+    love.graphics.rectangle("fill", 0, 0, 16, 16)
+    for _ = 1, 10 do
+      love.graphics.setColor(0.09, 0.08, 0.07)
+      love.graphics.rectangle("fill", love.math.random(15), love.math.random(15), 2, 1)
+    end
+    love.graphics.setCanvas()
+    love.graphics.pop()
   end
-  local cx = w * 0.5
-  for i = 0, 12 do
-    local bx = (i / 12) * w
-    love.graphics.line(cx, horizon, bx, h)
+  return ground_tile_cache
+end
+
+function render.ground(world_w, world_h)
+  local tile = ground_tile()
+  love.graphics.setColor(1, 1, 1, 1)
+  for y = 0, world_h - 1, 16 do
+    for x = 0, world_w - 1, 16 do
+      love.graphics.draw(tile, x, y)
+    end
   end
+
+  love.graphics.setColor(palette.wood[1], palette.wood[2], palette.wood[3])
+  for x = 8, world_w - 8, 24 do
+    love.graphics.rectangle("fill", x, 0, 3, 6)
+    love.graphics.rectangle("fill", x, world_h - 6, 3, 6)
+  end
+  for y = 8, world_h - 8, 24 do
+    love.graphics.rectangle("fill", 0, y, 6, 3)
+    love.graphics.rectangle("fill", world_w - 6, y, 6, 3)
+  end
+end
+
+function render.building(b)
+  local gx = b.x
+  local gy = b.y
+  shadow(gx, gy, b.w * 0.6, 3)
+  local dy = sy(gy)
+
+  love.graphics.setColor(palette.wood[1], palette.wood[2], palette.wood[3])
+  love.graphics.rectangle("fill", gx - b.w * 0.5, dy - b.h, b.w, b.h)
+  love.graphics.setColor(palette.roof[1], palette.roof[2], palette.roof[3])
+  love.graphics.polygon("fill", gx - b.w * 0.5 - 2, dy - b.h, gx + b.w * 0.5 + 2, dy - b.h, gx, dy - b.h - 9)
+  love.graphics.setColor(palette.door[1], palette.door[2], palette.door[3])
+  love.graphics.rectangle("fill", gx - 3, dy - 10, 6, 10)
+  love.graphics.setColor(palette.glass[1], palette.glass[2], palette.glass[3])
+  love.graphics.rectangle("fill", gx - b.w * 0.5 + 3, dy - b.h + 4, 4, 4)
+  love.graphics.rectangle("fill", gx + b.w * 0.5 - 7, dy - b.h + 4, 4, 4)
 end
 
 function render.cowboy(p, moving, muzzle)

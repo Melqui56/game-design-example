@@ -1,14 +1,13 @@
 local bullet    = require("src.core.bullet")
+local camera    = require("src.core.camera")
 local enemy     = require("src.core.enemy")
 local map       = require("src.core.map")
-local palette   = require("src.core.palette")
 local particles = require("src.core.particles")
 local pickup    = require("src.core.pickup")
 local player    = require("src.core.player")
 local shake     = require("src.core.shake")
 local upgrades  = require("src.core.upgrades")
 local waves     = require("src.core.waves")
-local backdrop  = require("src.fw.backdrop")
 local input     = require("src.fw.input")
 local light     = require("src.fw.light")
 local render    = require("src.fw.render")
@@ -16,6 +15,9 @@ local retro     = require("src.fw.retro")
 local save_io   = require("src.fw.save_io")
 local sfx       = require("src.fw.sfx")
 local ui        = require("src.fw.ui")
+
+local WORLD_W = 960
+local WORLD_H = 540
 
 local play = {}
 
@@ -39,28 +41,31 @@ local function nearest_enemy(self)
 end
 
 function play.enter(self)
-  local w, h = retro.getDimensions()
   retro.reset_offset()
-  self.area       = { minX = 0, minY = 0, maxX = w, maxY = h }
+  local vw, vh = retro.getDimensions()
+  self.area       = { minX = 0, minY = 0, maxX = WORLD_W, maxY = WORLD_H }
+  self.camera     = camera.new(WORLD_W, WORLD_H, vw, vh)
   self.wave       = 1
   self.spawns     = waves.plan(self.wave, self.area)
   self.wave_timer = 0
   self.enemies    = {}
   self.bullets    = {}
   self.pickups    = {}
-  self.props      = map.decorate(self.area, 16)
+  self.props      = map.decorate(self.area, 40)
+  self.buildings  = map.town(self.area, 10)
   self.fire_timer = 0
   self.muzzle     = 0
   self.moving     = false
   self.particles  = particles.new()
   self.shake      = shake.new()
   self.score      = 0
-  self.player     = player.new({ x = w * 0.5, y = h * 0.5 })
+  self.player     = player.new({ x = WORLD_W * 0.5, y = WORLD_H * 0.5 })
 end
 
 function play.update(self, dt)
   local state = input.snapshot()
   player.update(self.player, state, dt, self.area)
+  camera.follow(self.camera, self.player.position)
 
   self.moving = state.up or state.down or state.left or state.right
   local target = nearest_enemy(self)
@@ -186,11 +191,27 @@ function play.update(self, dt)
 end
 
 function play.draw(self)
-  local w, h = retro.getDimensions()
-  backdrop.draw(palette, w, h)
-  render.ground(w, h)
+  local vw, vh = retro.getDimensions()
+  love.graphics.push()
+  love.graphics.translate(-self.camera.x, -self.camera.y)
+
+  render.ground(WORLD_W, WORLD_H)
 
   local drawables = {}
+  for _, b in ipairs(self.buildings) do
+    local bb = b
+    table.insert(drawables, {
+      y = bb.y,
+      fn = function() render.building(bb) end,
+    })
+  end
+  for _, pr in ipairs(self.props) do
+    local pp = pr
+    table.insert(drawables, {
+      y = pp.y,
+      fn = function() render.prop(pp) end,
+    })
+  end
   table.insert(drawables, {
     y = self.player.position.y,
     fn = function() render.cowboy(self.player, self.moving, self.muzzle) end,
@@ -200,13 +221,6 @@ function play.draw(self)
     table.insert(drawables, {
       y = en.position.y,
       fn = function() render.zombie(en) end,
-    })
-  end
-  for _, pr in ipairs(self.props) do
-    local pp = pr
-    table.insert(drawables, {
-      y = pp.y,
-      fn = function() render.prop(pp) end,
     })
   end
   table.sort(drawables, function(a, b) return a.y < b.y end)
@@ -222,15 +236,17 @@ function play.draw(self)
     render.pickup(pk)
   end
 
-  love.graphics.setColor(0, 0, 0, 0.32)
-  love.graphics.rectangle("fill", 0, 0, w, h)
-  light.draw(self.player.position)
+  love.graphics.pop()
+
+  love.graphics.setColor(0, 0, 0, 0.16)
+  love.graphics.rectangle("fill", 0, 0, vw, vh)
+  light.draw({ x = self.player.position.x - self.camera.x, y = self.player.position.y - self.camera.y })
 
   love.graphics.setColor(0, 0, 0, 0.45)
-  love.graphics.rectangle("fill", 0, 0, w, 13)
+  love.graphics.rectangle("fill", 0, 0, vw, 13)
   render.hearts(self.player.hp, self.player.max_hp, 4, 3)
-  ui.hud_text_centered("WAVE " .. self.wave, w * 0.5, 2)
-  ui.hud_text_right("SCORE " .. self.score, w - 4, 2)
+  ui.hud_text_centered("WAVE " .. self.wave, vw * 0.5, 2)
+  ui.hud_text_right("SCORE " .. self.score, vw - 4, 2)
 end
 
 function play.keypressed(self, key)

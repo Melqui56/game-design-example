@@ -6,6 +6,7 @@ local REQUIRED = {
   "skin", "hat", "bandana", "denim", "boot",
   "zombie", "zombie_dark", "mouth", "muzzle",
   "cactus", "rock", "skull", "bush",
+  "wood", "roof", "glass", "door",
 }
 
 describe("palette", function()

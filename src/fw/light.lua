@@ -7,6 +7,8 @@ local function glow_image()
   if not glow then
     glow = love.graphics.newCanvas(GLOW * 2, GLOW * 2)
     glow:setFilter("linear", "linear")
+    love.graphics.push()
+    love.graphics.origin()
     love.graphics.setCanvas(glow)
     love.graphics.clear(0, 0, 0, 0)
     love.graphics.setBlendMode("add")
@@ -18,6 +20,7 @@ local function glow_image()
     end
     love.graphics.setBlendMode("alpha")
     love.graphics.setCanvas()
+    love.graphics.pop()
   end
   return glow
 end
