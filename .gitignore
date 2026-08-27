@@ -1,0 +1,20 @@
+# --- Build artifacts (generated, not stored) ---
+*.love
+love-*.AppImage
+build/
+dist/
+
+# --- OS noise ---
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# --- Test / lint artifacts ---
+.luacov
+luacov.*.out
+coverage/
+
+# --- Editor / local ---
+.idea/
+.vscode/
+scratch/
