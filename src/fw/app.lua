@@ -1,6 +1,7 @@
 local scene_manager       = require("src.fw.scene_manager")
-local title_controller    = require("src.game.title_controller")
-local play_controller     = require("src.game.play_controller")
+local main_menu_controller    = require("src.game.main_menu_controller")
+local play_controller    = require("src.game.play_controller")
+local pause_controller   = require("src.game.pause_controller")
 local gameover_controller = require("src.game.gameover_controller")
 local hotreload           = require("src.fw.hotreload")
 
@@ -14,10 +15,11 @@ end
 
 function app.load(self)
   self.hotreload = hotreload.setup()
-  self.scenes:add("title",    title_controller.new(self.scenes))
+  self.scenes:add("menu",     main_menu_controller.new(self.scenes))
   self.scenes:add("play",     play_controller.new(self.scenes))
+  self.scenes:add("pause",    pause_controller.new(self.scenes))
   self.scenes:add("gameover", gameover_controller.new(self.scenes))
-  self.scenes:switch("title")
+  self.scenes:switch("menu")
 end
 
 function app.update(self, dt)

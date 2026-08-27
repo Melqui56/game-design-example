@@ -1,37 +1,37 @@
 local menu = require("src.core.menu")
 local ui   = require("src.fw.ui")
 
-local gameover = {}
+local pause = {}
 
-function gameover.new(sm)
+function pause.new(sm)
   return setmetatable({
     sm   = sm,
-    menu = menu.new({ "Retry", "Menu" }),
-  }, { __index = gameover })
+    menu = menu.new({ "Resume", "Menu" }),
+  }, { __index = pause })
 end
 
-function gameover.enter(_)
+function pause.enter(_)
 end
 
-function gameover.update(_, _dt)
+function pause.update(_, _dt)
 end
 
-function gameover.draw(self)
+function pause.draw(self)
   local w, h = love.graphics.getDimensions()
-  love.graphics.clear(0.12, 0.04, 0.04)
-  ui.title("Game Over", w * 0.5, h * 0.35)
+  love.graphics.clear(0.05, 0.05, 0.08)
+  ui.title("Paused", w * 0.5, h * 0.35)
   ui.menu_items(self.menu, w * 0.5, h * 0.55, 28)
 end
 
-function gameover.keypressed(self, key)
+function pause.keypressed(self, key)
   if key == "up" then
     menu.move(self.menu, -1)
   elseif key == "down" then
     menu.move(self.menu, 1)
   elseif key == "escape" then
-    self.sm:switch("menu")
+    self.sm:switch("play")
   elseif key == "return" or key == "kpenter" then
-    if menu.current(self.menu) == "Retry" then
+    if menu.current(self.menu) == "Resume" then
       self.sm:switch("play")
     else
       self.sm:switch("menu")
@@ -39,4 +39,4 @@ function gameover.keypressed(self, key)
   end
 end
 
-return gameover
+return pause

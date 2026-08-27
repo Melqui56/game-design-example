@@ -1,0 +1,33 @@
+local menu = require("src.core.menu")
+
+describe("menu", function()
+  it("starts on the first item", function()
+    local m = menu.new({ "Play", "Quit" })
+    assert.are.equal("Play", menu.current(m))
+  end)
+
+  it("moves down one item at a time", function()
+    local m = menu.new({ "A", "B", "C" })
+    menu.move(m, 1)
+    assert.are.equal("B", menu.current(m))
+  end)
+
+  it("wraps when moving past the last item", function()
+    local m = menu.new({ "A", "B", "C" })
+    menu.move(m, 1)
+    menu.move(m, 1)
+    menu.move(m, 1)
+    assert.are.equal("A", menu.current(m))
+  end)
+
+  it("wraps when moving up past the first item", function()
+    local m = menu.new({ "A", "B", "C" })
+    menu.move(m, -1)
+    assert.are.equal("C", menu.current(m))
+  end)
+
+  it("rejects an empty menu", function()
+    local ok = pcall(menu.new, {})
+    assert.is_false(ok)
+  end)
+end)

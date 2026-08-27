@@ -66,7 +66,7 @@ end
 
 function play.keypressed(self, key)
   if key == "escape" then
-    self.sm:switch("title")
+    self.sm:switch("pause")
   end
 end
 
