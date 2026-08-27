@@ -3,6 +3,8 @@ local palette   = require("src.core.palette")
 local starfield = require("src.core.starfield")
 local backdrop  = require("src.fw.backdrop")
 local retro     = require("src.fw.retro")
+local save_io   = require("src.fw.save_io")
+local sfx       = require("src.fw.sfx")
 local ui        = require("src.fw.ui")
 
 local main_menu = {}
@@ -33,15 +35,22 @@ function main_menu.draw(self)
   ui.title("GAME DESIGN", w * 0.5, 40)
   ui.title("EXAMPLE U", w * 0.5, 68)
   ui.menu_items(self.menu, w * 0.5, 140, 26)
+  local best = save_io.get("high_score", 0)
+  if best > 0 then
+    ui.hud_text_centered("BEST " .. best, w * 0.5, 205)
+  end
   ui.hud_text("v0.1.0", 4, h - 14)
 end
 
 function main_menu.keypressed(self, key)
   if key == "up" then
     menu.move(self.menu, -1)
+    sfx.play("ui", 0.3)
   elseif key == "down" then
     menu.move(self.menu, 1)
+    sfx.play("ui", 0.3)
   elseif key == "return" or key == "kpenter" then
+    sfx.play("ui", 0.3)
     if menu.current(self.menu) == "Play" then
       self.sm:switch("play")
     else

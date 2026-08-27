@@ -5,9 +5,13 @@ local anim = require("src.core.anim")
 local player = {}
 
 local DEFAULTS = {
-  size  = 24,
-  speed = 260,
-  hp    = 3,
+  size          = 24,
+  speed         = 260,
+  hp            = 3,
+  damage        = 1,
+  fire_interval = 0.16,
+  bullet_speed  = 320,
+  bullet_radius = 2,
 }
 
 local HIT_DURATION = 0.8
@@ -38,8 +42,12 @@ function player.new(opts)
     size     = size,
     radius   = size * 0.5,
     speed    = o.speed or DEFAULTS.speed,
-    hp       = o.hp or DEFAULTS.hp,
-    max_hp   = o.hp or DEFAULTS.hp,
+    hp            = o.hp or DEFAULTS.hp,
+    max_hp        = o.hp or DEFAULTS.hp,
+    damage        = o.damage or DEFAULTS.damage,
+    fire_interval = o.fire_interval or DEFAULTS.fire_interval,
+    bullet_speed  = o.bullet_speed or DEFAULTS.bullet_speed,
+    bullet_radius = o.bullet_radius or DEFAULTS.bullet_radius,
     flash    = false,
     aim      = { x = 0, y = -1 },
     idle_anim = anim.new(2, 4),

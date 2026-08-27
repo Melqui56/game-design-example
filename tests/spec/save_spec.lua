@@ -1,0 +1,20 @@
+local save = require("src.core.save")
+
+describe("save", function()
+  it("round-trips a flat table", function()
+    local parsed = save.parse(save.serialize({ high_score = 120, name = "cowboy" }))
+    assert.are.equal(120, parsed.high_score)
+    assert.are.equal("cowboy", parsed.name)
+  end)
+
+  it("parses empty text into an empty table", function()
+    assert.are.same({}, save.parse(""))
+  end)
+
+  it("parses numeric strings as numbers", function()
+    local t = save.parse("a=3\nb=1.5\nc=hi")
+    assert.are.equal(3, t.a)
+    assert.are.equal(1.5, t.b)
+    assert.are.equal("hi", t.c)
+  end)
+end)

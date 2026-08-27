@@ -9,6 +9,7 @@ function bullet.new(x, y, dir, opts)
     dir      = vec2.normalize(dir or { x = 0, y = -1 }),
     speed    = o.speed or 260,
     radius   = o.radius or 2,
+    damage   = o.damage or 1,
     dead     = false,
   }
 end

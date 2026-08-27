@@ -11,7 +11,7 @@ function scene_manager.add(self, name, scene)
   self.scenes[name] = scene
 end
 
-function scene_manager.switch(self, name)
+function scene_manager.switch(self, name, ...)
   local next_scene = self.scenes[name]
   if not next_scene then
     error("scene not registered: " .. tostring(name))
@@ -21,7 +21,7 @@ function scene_manager.switch(self, name)
   end
   self.current = next_scene
   if self.current.enter then
-    self.current.enter(self.current)
+    self.current.enter(self.current, ...)
   end
 end
 

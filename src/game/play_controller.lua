@@ -10,10 +10,9 @@ local input     = require("src.fw.input")
 local light     = require("src.fw.light")
 local render    = require("src.fw.render")
 local retro     = require("src.fw.retro")
+local save_io   = require("src.fw.save_io")
+local sfx       = require("src.fw.sfx")
 local ui        = require("src.fw.ui")
-
-local FIRE_INTERVAL = 0.16
-local BULLET_SPEED  = 320
 
 local play = {}
 
@@ -36,7 +35,11 @@ local function nearest_enemy(self)
   return target
 end
 
-function play.enter(self)
+function play.enter(self, _)
+  if self.keep_state then
+    self.keep_state = false
+    return
+  end
   local w, h = retro.getDimensions()
   retro.reset_offset()
   self.area       = { minX = 0, minY = 0, maxX = w, maxY = h }
@@ -75,9 +78,11 @@ function play.update(self, dt)
   self.muzzle     = self.muzzle - dt
   if state.shoot and self.fire_timer <= 0 then
     table.insert(self.bullets, bullet.new(
-      self.player.position.x, self.player.position.y, self.player.aim, { speed = BULLET_SPEED }))
-    self.fire_timer = FIRE_INTERVAL
+      self.player.position.x, self.player.position.y, self.player.aim,
+      { speed = self.player.bullet_speed, radius = self.player.bullet_radius, damage = self.player.damage }))
+    self.fire_timer = self.player.fire_interval
     self.muzzle     = 0.08
+    sfx.play("shoot", 0.5)
   end
 
   self.wave_timer = self.wave_timer + dt
@@ -117,10 +122,11 @@ function play.update(self, dt)
       end
     end
     if hit then
-      if enemy.take_damage(e, 1) then
+      if enemy.take_damage(e, self.player.damage) then
         particles.burst(self.particles, e.position.x, e.position.y, { count = 10 })
         shake.add(self.shake, 0.3)
-        self.score = self.score + 10
+        self.score = self.score + 10 * self.player.damage
+        sfx.play("kill", 0.45)
       end
     end
     k = k - 1
@@ -132,6 +138,7 @@ function play.update(self, dt)
     if enemy.touches(e, self.player) then
       if player.take_damage(self.player, 1) then
         shake.add(self.shake, 0.45)
+        sfx.play("hurt", 0.5)
       end
       table.remove(self.enemies, ci)
     end
@@ -139,7 +146,11 @@ function play.update(self, dt)
   end
 
   if self.player.hp <= 0 then
-    self.sm:switch("gameover")
+    if self.score > save_io.get("high_score", 0) then
+      save_io.set("high_score", self.score)
+    end
+    sfx.play("kill", 0.5)
+    self.sm:switch("gameover", self.score)
     return
   end
 
@@ -147,6 +158,9 @@ function play.update(self, dt)
     self.wave       = self.wave + 1
     self.spawns     = waves.plan(self.wave, self.area)
     self.wave_timer = 0
+    self.keep_state = true
+    self.sm:switch("upgrade", self.player)
+    return
   end
 
   particles.update(self.particles, dt)
