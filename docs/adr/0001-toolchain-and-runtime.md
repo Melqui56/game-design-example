@@ -5,7 +5,7 @@
 
 ## Context
 
-Portfolio project: a 2D game built with Lua and LÖVE. We need to pin the
+A 2D game built with Lua and LÖVE. We need to pin the
 runtime version so that development and CI use exactly the same environment.
 
 ## Decision
@@ -22,7 +22,7 @@ runtime version so that development and CI use exactly the same environment.
 ## Consequences
 
 - The same game code runs on Windows, macOS, Linux, Android and iOS, which
-  maximizes the reach of the portfolio.
+  maximizes the reach of a demo.
 - Pinning the version means any machine (and our CI) replicates the same
   runtime.
 - Fedora and Ubuntu/Debian ship LÖVE 11.x in their official repos, so setup
