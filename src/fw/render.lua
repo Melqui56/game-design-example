@@ -9,19 +9,49 @@ end
 function render.player(p)
   local x = p.position.x - p.size * 0.5
   local y = p.position.y - p.size * 0.5
-  set_color(palette.player)
+  if p.flash then
+    love.graphics.setColor(1, 1, 1, 0.85)
+  else
+    set_color(palette.player)
+  end
   love.graphics.rectangle("fill", x, y, p.size, p.size)
   set_color(palette.outline)
   love.graphics.rectangle("line", x, y, p.size, p.size)
   love.graphics.setColor(1, 1, 1, 0.25)
   love.graphics.rectangle("fill", x + 2, y + 2, p.size - 4, 3)
+
+  local nx = p.position.x + p.aim.x * (p.size * 0.5)
+  local ny = p.position.y + p.aim.y * (p.size * 0.5)
+  love.graphics.setColor(palette.eye[1], palette.eye[2], palette.eye[3])
+  love.graphics.rectangle("fill", nx - 1, ny - 1, 2, 2)
 end
 
 function render.enemy(e)
-  set_color(palette.enemy)
+  if e.flash then
+    love.graphics.setColor(palette.eye[1], palette.eye[2], palette.eye[3])
+  else
+    set_color(palette.enemy)
+  end
   love.graphics.circle("fill", e.position.x, e.position.y, e.radius)
   set_color(palette.outline)
   love.graphics.circle("line", e.position.x, e.position.y, e.radius)
+
+  love.graphics.setColor(palette.outline[1], palette.outline[2], palette.outline[3], 0.5)
+  love.graphics.circle("fill", e.position.x, e.position.y, e.radius * 0.35)
+
+  local dx = e.target.x - e.position.x
+  local dy = e.target.y - e.position.y
+  local len = math.sqrt(dx * dx + dy * dy)
+  local ux, uy = 0, -1
+  if len > 0 then
+    ux, uy = dx / len, dy / len
+  end
+  local px, py = -uy, ux
+  local cx = e.position.x + ux * e.radius * 0.55
+  local cy = e.position.y + uy * e.radius * 0.55
+  set_color(palette.eye)
+  love.graphics.rectangle("fill", cx + px * 2 - 1, cy + py * 2 - 1, 2, 2)
+  love.graphics.rectangle("fill", cx - px * 2 - 1, cy - py * 2 - 1, 2, 2)
 end
 
 function render.bullet(b)

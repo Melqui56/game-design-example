@@ -37,11 +37,11 @@ end
 function play.update(self, dt)
   local state = input.snapshot()
   player.update(self.player, state, dt, self.area)
+  self.player.aim = player.facing(state)
 
   self.fire_timer = self.fire_timer - dt
   if state.shoot and self.fire_timer <= 0 then
-    local aim = player.facing(state)
-    table.insert(self.bullets, bullet.new(self.player.position.x, self.player.position.y, aim))
+    table.insert(self.bullets, bullet.new(self.player.position.x, self.player.position.y, self.player.aim))
     self.fire_timer = FIRE_INTERVAL
   end
 
@@ -51,8 +51,14 @@ function play.update(self, dt)
     table.insert(self.enemies, enemy.new(ev.kind, ev.x, ev.y))
   end
 
-  for _, e in ipairs(self.enemies) do
+  local ei = #self.enemies
+  while ei >= 1 do
+    local e = self.enemies[ei]
     enemy.update(e, self.player.position, dt)
+    if e.dead then
+      table.remove(self.enemies, ei)
+    end
+    ei = ei - 1
   end
 
   local bi = #self.bullets
@@ -65,9 +71,9 @@ function play.update(self, dt)
     bi = bi - 1
   end
 
-  local ei = #self.enemies
-  while ei >= 1 do
-    local e = self.enemies[ei]
+  local k = #self.enemies
+  while k >= 1 do
+    local e = self.enemies[k]
     local hit = false
     for j = #self.bullets, 1, -1 do
       if bullet.touches(self.bullets[j], e) then
@@ -75,20 +81,22 @@ function play.update(self, dt)
         hit = true
       end
     end
-    if hit and enemy.take_damage(e, 1) then
-      particles.burst(self.particles, e.position.x, e.position.y, { count = 10 })
-      shake.add(self.shake, 0.3)
-      table.remove(self.enemies, ei)
+    if hit then
+      if enemy.take_damage(e, 1) then
+        particles.burst(self.particles, e.position.x, e.position.y, { count = 10 })
+        shake.add(self.shake, 0.3)
+      end
     end
-    ei = ei - 1
+    k = k - 1
   end
 
   local ci = #self.enemies
   while ci >= 1 do
     local e = self.enemies[ci]
     if enemy.touches(e, self.player) then
-      player.take_damage(self.player, 1)
-      shake.add(self.shake, 0.45)
+      if player.take_damage(self.player, 1) then
+        shake.add(self.shake, 0.45)
+      end
       table.remove(self.enemies, ci)
     end
     ci = ci - 1

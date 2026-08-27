@@ -1,4 +1,5 @@
 local vec2 = require("src.core.vec2")
+local fsm  = require("src.core.fsm")
 
 local player = {}
 
@@ -8,16 +9,40 @@ local DEFAULTS = {
   hp    = 3,
 }
 
+local HIT_DURATION = 0.8
+
+local states = {
+  alive = {},
+  hit = {
+    enter = function(self)
+      self.hit_timer = HIT_DURATION
+    end,
+    update = function(self, dt)
+      self.hit_timer = self.hit_timer - dt
+      self.flash = (math.floor(self.hit_timer * 12) % 2) == 0
+      if self.hit_timer <= 0 then
+        self.flash = false
+        fsm.change(self.fsm, "alive")
+      end
+    end,
+  },
+  dead = {},
+}
+
 function player.new(opts)
   local o = opts or {}
   local size = o.size or DEFAULTS.size
-  return {
+  local self = {
     position = vec2.new(o.x or 0, o.y or 0),
     size     = size,
     radius   = size * 0.5,
     speed    = o.speed or DEFAULTS.speed,
     hp       = o.hp or DEFAULTS.hp,
+    flash    = false,
+    aim      = { x = 0, y = -1 },
   }
+  self.fsm = fsm.new(states, "alive", self)
+  return self
 end
 
 function player.update(self, input, dt, bounds)
@@ -38,12 +63,21 @@ function player.update(self, input, dt, bounds)
     self.position.y = math.min(math.max(self.position.y, bounds.minY + hw), bounds.maxY - hw)
   end
 
+  fsm.update(self.fsm, dt)
   return self
 end
 
 function player.take_damage(self, amount)
+  if self.fsm.current == "hit" or self.fsm.current == "dead" then
+    return false
+  end
   self.hp = self.hp - (amount or 1)
-  return self.hp <= 0
+  if self.hp <= 0 then
+    fsm.change(self.fsm, "dead")
+    return true
+  end
+  fsm.change(self.fsm, "hit")
+  return true
 end
 
 function player.facing(input)

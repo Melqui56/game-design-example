@@ -1,9 +1,38 @@
 local vec2 = require("src.core.vec2")
+local fsm  = require("src.core.fsm")
 
 local enemy = {}
 
 enemy.TYPES = {
   chaser = { speed = 90, hp = 1, radius = 14 },
+}
+
+local states = {
+  chase = {
+    update = function(self, dt)
+      local delta = vec2.sub(self.target, self.position)
+      local dist  = vec2.length(delta)
+      local step  = self.speed * dt
+      if step >= dist then
+        self.position.x = self.target.x
+        self.position.y = self.target.y
+        return
+      end
+      local move = vec2.scale(vec2.normalize(delta), step)
+      self.position = vec2.add(self.position, move)
+    end,
+  },
+  dying = {
+    enter = function(self)
+      self.dying_timer = 0.25
+    end,
+    update = function(self, dt)
+      self.dying_timer = self.dying_timer - dt
+      if self.dying_timer <= 0 then
+        self.dead = true
+      end
+    end,
+  },
 }
 
 function enemy.new(kind, x, y, opts)
@@ -12,32 +41,36 @@ function enemy.new(kind, x, y, opts)
     error("unknown enemy kind: " .. tostring(kind))
   end
   local o = opts or {}
-  return {
+  local self = {
     kind     = kind or "chaser",
     position = { x = x, y = y },
     speed    = o.speed or t.speed,
     hp       = o.hp or t.hp,
     radius   = o.radius or t.radius,
+    target   = { x = 0, y = 0 },
+    dead     = false,
+    flash    = false,
   }
+  self.fsm = fsm.new(states, "chase", self)
+  return self
 end
 
 function enemy.update(self, target, dt)
-  local delta = vec2.sub(target, self.position)
-  local dist  = vec2.length(delta)
-  local step  = self.speed * dt
-  if step >= dist then
-    self.position.x = target.x
-    self.position.y = target.y
-    return self
-  end
-  local move = vec2.scale(vec2.normalize(delta), step)
-  self.position = vec2.add(self.position, move)
+  self.target = target
+  fsm.update(self.fsm, dt)
   return self
 end
 
 function enemy.take_damage(self, amount)
+  if self.fsm.current == "dying" then
+    return false
+  end
   self.hp = self.hp - (amount or 1)
-  return self.hp <= 0
+  self.flash = true
+  if self.hp <= 0 then
+    fsm.change(self.fsm, "dying")
+  end
+  return true
 end
 
 function enemy.touches(self, other)

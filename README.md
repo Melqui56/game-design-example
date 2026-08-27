@@ -92,6 +92,8 @@ scripts/      bootstrap.sh (idempotent environment provisioning)
 - [docs/adr/0002](docs/adr/0002-bootstrap-strategy.md) — provisioning strategy
 - [docs/adr/0003](docs/adr/0003-testing-and-linting.md) — testing & linting
 - [docs/adr/0004](docs/adr/0004-local-ci.md) — local CI as the primary verification loop
+- [docs/adr/0005](docs/adr/0005-visual-identity.md) — pixel-art visual identity
+- [docs/adr/0006](docs/adr/0006-state-machines.md) — state machines as the core pattern
 
 ## License
 

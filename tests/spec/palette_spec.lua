@@ -2,7 +2,7 @@ local palette = require("src.core.palette")
 
 local REQUIRED = {
   "night", "dusk", "panel", "player", "accent",
-  "enemy", "danger", "text", "muted", "star", "outline", "shadow",
+  "enemy", "danger", "text", "muted", "star", "eye", "outline", "shadow",
 }
 
 describe("palette", function()
