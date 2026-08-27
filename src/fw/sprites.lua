@@ -154,6 +154,45 @@ local function build_flash(rows)
   return c
 end
 
+local PROPS = {
+  cactus = {
+    ".XX...",
+    ".XX.XX",
+    ".XX.XX",
+    ".XX...",
+    ".XX...",
+    "......",
+  },
+  rock = {
+    ".XXXX.",
+    "XXXXXX",
+    "XXXXXX",
+    "XXXXX.",
+    "......",
+  },
+  skull = {
+    ".XX..",
+    "X..X.",
+    "XXXX.",
+    "X..X.",
+    "......",
+  },
+  bush = {
+    "..XX..",
+    ".XXXX.",
+    "XXXXXX",
+    ".XXXX.",
+    "......",
+  },
+}
+
+local PROPS_MAP = {
+  cactus = palette.cactus,
+  rock   = palette.rock,
+  skull  = palette.skull,
+  bush   = palette.bush,
+}
+
 local built = false
 
 function sprites.ensure()
@@ -172,6 +211,10 @@ function sprites.ensure()
   for _, rows in ipairs(ZOMBIE) do
     table.insert(sprites.zombie, build_image(rows, ZOMBIE_MAP))
     table.insert(sprites.zombie_flash, build_flash(rows))
+  end
+  sprites.props = {}
+  for kind, rows in pairs(PROPS) do
+    sprites.props[kind] = build_image(rows, { X = PROPS_MAP[kind] })
   end
 end
 

@@ -5,6 +5,7 @@ local REQUIRED = {
   "enemy", "danger", "text", "muted", "star", "eye", "outline", "shadow",
   "skin", "hat", "bandana", "denim", "boot",
   "zombie", "zombie_dark", "mouth", "muzzle",
+  "cactus", "rock", "skull", "bush",
 }
 
 describe("palette", function()

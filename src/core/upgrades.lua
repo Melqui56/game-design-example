@@ -1,13 +1,13 @@
 local upgrades = {}
 
 local POOL = {
-  { id = "damage",  label = "SHARPSHOOTER", desc = "+1 damage",
+  { id = "damage",  label = "SHARPSHOOTER", desc = "+1 damage", color = { 0.95, 0.85, 0.25 },
     apply = function(p) p.damage = p.damage + 1 end },
-  { id = "heart",   label = "IRON HEART",   desc = "+1 max HP and heal",
+  { id = "heart",   label = "IRON HEART",   desc = "+1 max HP and heal", color = { 0.85, 0.30, 0.30 },
     apply = function(p) p.max_hp = p.max_hp + 1; p.hp = math.min(p.max_hp, p.hp + 1) end },
-  { id = "deadeye", label = "DEADEYE",      desc = "Fire faster",
+  { id = "deadeye", label = "DEADEYE",      desc = "Fire faster", color = { 0.30, 0.80, 0.90 },
     apply = function(p) p.fire_interval = p.fire_interval * 0.75 end },
-  { id = "boom",    label = "HEAVY SHOT",   desc = "Bigger bullets",
+  { id = "boom",    label = "HEAVY SHOT",   desc = "Bigger bullets", color = { 1.00, 0.60, 0.20 },
     apply = function(p) p.bullet_radius = p.bullet_radius + 1 end },
 }
 

@@ -68,7 +68,7 @@ function render.zombie(e)
   sprites.ensure()
   local gx = e.position.x
   local gy = e.position.y
-  shadow(gx, gy, 5, 2)
+  shadow(gx, gy, 5 * e.scale, 2 * e.scale)
   local dy = sy(gy)
 
   local frames = e.flash and sprites.zombie_flash or sprites.zombie
@@ -80,7 +80,39 @@ function render.zombie(e)
     sx = -1
   end
   love.graphics.setColor(1, 1, 1, 1)
-  love.graphics.draw(img, gx, dy, 0, sx, 1, w * 0.5, h * 0.5)
+  love.graphics.draw(img, gx, dy, 0, sx * e.scale, e.scale, w * 0.5, h * 0.5)
+end
+
+function render.prop(pr)
+  sprites.ensure()
+  local img = sprites.props[pr.kind]
+  if not img then
+    return
+  end
+  local gx = pr.x
+  local gy = pr.y
+  shadow(gx, gy, 4, 2)
+  local dy = sy(gy)
+  local w = img:getWidth()
+  local h = img:getHeight()
+  love.graphics.setColor(1, 1, 1, 1)
+  love.graphics.draw(img, gx, dy, 0, 1, 1, w * 0.5, h * 0.5)
+end
+
+function render.pickup(pk)
+  local gx = pk.position.x
+  local gy = pk.position.y
+  shadow(gx, gy, 4, 2)
+  local dy = sy(gy)
+  local bob = math.floor(math.sin(pk.age * 4) * 2)
+  love.graphics.setColor(pk.def.color[1], pk.def.color[2], pk.def.color[3])
+  love.graphics.polygon("fill",
+    gx, dy + bob - 5,
+    gx + 5, dy + bob,
+    gx, dy + bob + 5,
+    gx - 5, dy + bob)
+  love.graphics.setColor(1, 1, 1, 0.9)
+  love.graphics.rectangle("fill", gx - 1, dy + bob - 1, 2, 2)
 end
 
 function render.bullet(b)

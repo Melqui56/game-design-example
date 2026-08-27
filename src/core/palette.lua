@@ -22,6 +22,11 @@ local palette = {
   zombie_dark = { 0.24, 0.36, 0.22 },
   mouth    = { 0.10, 0.08, 0.06 },
   muzzle   = { 1.00, 0.90, 0.40 },
+
+  cactus   = { 0.28, 0.45, 0.24 },
+  rock     = { 0.30, 0.28, 0.26 },
+  skull    = { 0.85, 0.85, 0.85 },
+  bush     = { 0.22, 0.34, 0.20 },
 }
 
 return palette

@@ -5,7 +5,9 @@ local anim = require("src.core.anim")
 local enemy = {}
 
 enemy.TYPES = {
-  chaser = { speed = 90, hp = 1, radius = 14 },
+  chaser = { speed = 90,  hp = 1, radius = 14, scale = 1.0 },
+  runner = { speed = 170, hp = 1, radius = 10, scale = 0.85 },
+  tank   = { speed = 55,  hp = 3, radius = 18, scale = 1.5 },
 }
 
 local states = {
@@ -48,6 +50,7 @@ function enemy.new(kind, x, y, opts)
     speed    = o.speed or t.speed,
     hp       = o.hp or t.hp,
     radius   = o.radius or t.radius,
+    scale    = o.scale or t.scale,
     target   = { x = 0, y = 0 },
     dead     = false,
     flash    = false,

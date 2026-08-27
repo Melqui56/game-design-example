@@ -28,6 +28,17 @@ local function random_point(area, rng)
   return x, y
 end
 
+local function pick_kind(wave_number, rng)
+  local r = rng or math.random
+  if wave_number >= 4 and r(100) <= 25 then
+    return "tank"
+  end
+  if wave_number >= 2 and r(100) <= 30 then
+    return "runner"
+  end
+  return "chaser"
+end
+
 function waves.plan(wave_number, area, rng)
   area = area or { minX = 0, minY = 0, maxX = 960, maxY = 540 }
   local count = 3 + (wave_number - 1)
@@ -36,7 +47,7 @@ function waves.plan(wave_number, area, rng)
     local x, y = random_point(area, rng)
     table.insert(events, {
       time = (i - 1) * SPAWN_INTERVAL,
-      kind = "chaser",
+      kind = pick_kind(wave_number, rng),
       x    = x,
       y    = y,
     })

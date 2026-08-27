@@ -1,9 +1,12 @@
 local bullet    = require("src.core.bullet")
 local enemy     = require("src.core.enemy")
+local map       = require("src.core.map")
 local palette   = require("src.core.palette")
 local particles = require("src.core.particles")
+local pickup    = require("src.core.pickup")
 local player    = require("src.core.player")
 local shake     = require("src.core.shake")
+local upgrades  = require("src.core.upgrades")
 local waves     = require("src.core.waves")
 local backdrop  = require("src.fw.backdrop")
 local input     = require("src.fw.input")
@@ -35,11 +38,7 @@ local function nearest_enemy(self)
   return target
 end
 
-function play.enter(self, _)
-  if self.keep_state then
-    self.keep_state = false
-    return
-  end
+function play.enter(self)
   local w, h = retro.getDimensions()
   retro.reset_offset()
   self.area       = { minX = 0, minY = 0, maxX = w, maxY = h }
@@ -48,6 +47,8 @@ function play.enter(self, _)
   self.wave_timer = 0
   self.enemies    = {}
   self.bullets    = {}
+  self.pickups    = {}
+  self.props      = map.decorate(self.area, 16)
   self.fire_timer = 0
   self.muzzle     = 0
   self.moving     = false
@@ -127,6 +128,10 @@ function play.update(self, dt)
         shake.add(self.shake, 0.3)
         self.score = self.score + 10 * self.player.damage
         sfx.play("kill", 0.45)
+        if love.math.random() < 0.22 then
+          local picks = upgrades.choose(upgrades.pool(), 1)
+          table.insert(self.pickups, pickup.new(picks[1], e.position.x, e.position.y))
+        end
       end
     end
     k = k - 1
@@ -158,9 +163,20 @@ function play.update(self, dt)
     self.wave       = self.wave + 1
     self.spawns     = waves.plan(self.wave, self.area)
     self.wave_timer = 0
-    self.keep_state = true
-    self.sm:switch("upgrade", self.player)
-    return
+  end
+
+  local pi = #self.pickups
+  while pi >= 1 do
+    local pk = self.pickups[pi]
+    pickup.update(pk, dt)
+    if pk.dead or pickup.touches(pk, self.player) then
+      if not pk.dead then
+        upgrades.apply(pk.def, self.player)
+        sfx.play("ui", 0.4)
+      end
+      table.remove(self.pickups, pi)
+    end
+    pi = pi - 1
   end
 
   particles.update(self.particles, dt)
@@ -186,6 +202,13 @@ function play.draw(self)
       fn = function() render.zombie(en) end,
     })
   end
+  for _, pr in ipairs(self.props) do
+    local pp = pr
+    table.insert(drawables, {
+      y = pp.y,
+      fn = function() render.prop(pp) end,
+    })
+  end
   table.sort(drawables, function(a, b) return a.y < b.y end)
   for _, d in ipairs(drawables) do
     d.fn()
@@ -195,6 +218,9 @@ function play.draw(self)
     render.bullet(b)
   end
   render.particles(self.particles.list)
+  for _, pk in ipairs(self.pickups) do
+    render.pickup(pk)
+  end
 
   love.graphics.setColor(0, 0, 0, 0.32)
   love.graphics.rectangle("fill", 0, 0, w, h)

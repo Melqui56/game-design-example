@@ -33,4 +33,18 @@ describe("waves.plan", function()
       assert.are.equal(11, ev.x)
     end
   end)
+
+  it("introduces tanks on later waves", function()
+    local events = waves.plan(4, nil, top_rng)
+    assert.are.equal("tank", events[1].kind)
+  end)
+
+  it("keeps every spawn kind valid", function()
+    local area = { minX = 0, minY = 0, maxX = 480, maxY = 270 }
+    for wave = 1, 6 do
+      for _, ev in ipairs(waves.plan(wave, area, top_rng)) do
+        assert.is_true(ev.kind == "chaser" or ev.kind == "runner" or ev.kind == "tank")
+      end
+    end
+  end)
 end)
