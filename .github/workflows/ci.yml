@@ -1,0 +1,26 @@
+name: CI (manual)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Lua toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lua5.4 liblua5.4-dev luarocks
+
+      - name: Install rocks
+        run: |
+          sudo luarocks install busted
+          sudo luarocks install luacheck
+
+      - name: Lint
+        run: luacheck src tests
+
+      - name: Test
+        run: busted tests/spec

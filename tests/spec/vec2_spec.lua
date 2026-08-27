@@ -1,0 +1,38 @@
+local vec2 = require("src.core.vec2")
+
+describe("vec2", function()
+  it("adds two vectors", function()
+    local c = vec2.add(vec2.new(1, 2), vec2.new(3, 4))
+    assert.are.equal(4, c.x)
+    assert.are.equal(6, c.y)
+  end)
+
+  it("subtracts two vectors", function()
+    local c = vec2.sub(vec2.new(5, 6), vec2.new(2, 1))
+    assert.are.equal(3, c.x)
+    assert.are.equal(5, c.y)
+  end)
+
+  it("scales a vector", function()
+    local c = vec2.scale(vec2.new(2, 3), 2)
+    assert.are.equal(4, c.x)
+    assert.are.equal(6, c.y)
+  end)
+
+  it("returns a zero vector for zero input", function()
+    local c = vec2.normalize(vec2.new(0, 0))
+    assert.are.equal(0, c.x)
+    assert.are.equal(0, c.y)
+  end)
+
+  it("normalizes a non-zero vector to unit length", function()
+    local c = vec2.normalize(vec2.new(0, 5))
+    assert.are.near(1, vec2.length(c), 0.0001)
+  end)
+
+  it("clamps values into the range", function()
+    local c = vec2.clamp(vec2.new(-10, 20), 0, 10)
+    assert.are.equal(0, c.x)
+    assert.are.equal(10, c.y)
+  end)
+end)
