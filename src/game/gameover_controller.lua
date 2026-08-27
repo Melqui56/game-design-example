@@ -1,5 +1,8 @@
-local menu = require("src.core.menu")
-local ui   = require("src.fw.ui")
+local menu     = require("src.core.menu")
+local palette  = require("src.core.palette")
+local backdrop = require("src.fw.backdrop")
+local retro    = require("src.fw.retro")
+local ui       = require("src.fw.ui")
 
 local gameover = {}
 
@@ -17,10 +20,10 @@ function gameover.update(_, _dt)
 end
 
 function gameover.draw(self)
-  local w, h = love.graphics.getDimensions()
-  love.graphics.clear(0.12, 0.04, 0.04)
-  ui.title("Game Over", w * 0.5, h * 0.35)
-  ui.menu_items(self.menu, w * 0.5, h * 0.55, 28)
+  local w, h = retro.getDimensions()
+  backdrop.draw(palette, w, h)
+  ui.title("GAME OVER", w * 0.5, 80)
+  ui.menu_items(self.menu, w * 0.5, 140, 26)
 end
 
 function gameover.keypressed(self, key)

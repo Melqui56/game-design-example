@@ -1,9 +1,10 @@
 local scene_manager       = require("src.fw.scene_manager")
-local main_menu_controller    = require("src.game.main_menu_controller")
-local play_controller    = require("src.game.play_controller")
-local pause_controller   = require("src.game.pause_controller")
+local main_menu_controller = require("src.game.main_menu_controller")
+local play_controller     = require("src.game.play_controller")
+local pause_controller    = require("src.game.pause_controller")
 local gameover_controller = require("src.game.gameover_controller")
 local hotreload           = require("src.fw.hotreload")
+local retro               = require("src.fw.retro")
 
 local app = {}
 
@@ -30,7 +31,9 @@ function app.update(self, dt)
 end
 
 function app.draw(self)
+  retro.begin()
   self.scenes:draw()
+  retro.finish()
 end
 
 function app.keypressed(self, key)

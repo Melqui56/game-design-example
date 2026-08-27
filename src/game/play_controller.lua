@@ -1,8 +1,12 @@
-local enemy  = require("src.core.enemy")
-local player = require("src.core.player")
-local waves  = require("src.core.waves")
-local input  = require("src.fw.input")
-local render = require("src.fw.render")
+local enemy    = require("src.core.enemy")
+local palette  = require("src.core.palette")
+local player   = require("src.core.player")
+local waves    = require("src.core.waves")
+local backdrop = require("src.fw.backdrop")
+local input    = require("src.fw.input")
+local render   = require("src.fw.render")
+local retro    = require("src.fw.retro")
+local ui       = require("src.fw.ui")
 
 local play = {}
 
@@ -11,7 +15,7 @@ function play.new(sm)
 end
 
 function play.enter(self)
-  local w, h = love.graphics.getDimensions()
+  local w, h = retro.getDimensions()
   self.area       = { minX = 0, minY = 0, maxX = w, maxY = h }
   self.wave       = 1
   self.spawns     = waves.plan(self.wave, self.area)
@@ -56,12 +60,13 @@ function play.update(self, dt)
 end
 
 function play.draw(self)
-  love.graphics.clear(0.10, 0.10, 0.14)
+  local w, h = retro.getDimensions()
+  backdrop.draw(palette, w, h)
   render.player(self.player)
   for _, e in ipairs(self.enemies) do
     render.enemy(e)
   end
-  render.text("HP " .. self.player.hp .. "   Wave " .. self.wave, 12, 12)
+  ui.hud_text("HP " .. self.player.hp .. "  WAVE " .. self.wave, 4, 4)
 end
 
 function play.keypressed(self, key)

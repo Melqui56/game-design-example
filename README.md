@@ -11,6 +11,7 @@ and Lua. Testable pure logic, a thin render layer, and a local CI loop.
 - LÖVE 11.5 (LuaJIT 2.1 on the runtime)
 - busted + luacheck (tests and lint, headless)
 - Makefile (local CI); GitHub Actions available but manual only
+- Pixel-art identity: Press Start 2P font (OFL) + virtual 480x270 canvas
 
 ## Quick start
 
@@ -80,6 +81,7 @@ src/core/     pure logic, no love.* (playable and testable headless)
 src/fw/       thin love.* glue (app, scene machine, input, render)
 src/game/     controllers wiring core + fw per scene
 tests/spec/   busted specs (core only)
+assets/       fonts (Press Start 2P, OFL)
 docs/adr/     architecture decision records
 scripts/      bootstrap.sh (idempotent environment provisioning)
 ```

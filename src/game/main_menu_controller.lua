@@ -1,5 +1,8 @@
 local menu      = require("src.core.menu")
+local palette   = require("src.core.palette")
 local starfield = require("src.core.starfield")
+local backdrop  = require("src.fw.backdrop")
+local retro     = require("src.fw.retro")
 local ui        = require("src.fw.ui")
 
 local main_menu = {}
@@ -8,7 +11,7 @@ function main_menu.new(sm)
   return setmetatable({
     sm    = sm,
     menu  = menu.new({ "Play", "Quit" }),
-    stars = starfield.new(60),
+    stars = starfield.new(50),
   }, { __index = main_menu })
 end
 
@@ -20,16 +23,16 @@ function main_menu.update(self, dt)
 end
 
 function main_menu.draw(self)
-  local w, h = love.graphics.getDimensions()
-  love.graphics.clear(0.07, 0.07, 0.12)
+  local w, h = retro.getDimensions()
+  backdrop.draw(palette, w, h)
   for _, s in ipairs(self.stars.stars) do
-    love.graphics.setColor(0.7, 0.7, 0.75, 0.8)
+    love.graphics.setColor(palette.star[1], palette.star[2], palette.star[3])
     love.graphics.rectangle("fill", s.x * w, s.y * h, s.size, s.size)
   end
-  ui.title("Game Design Example U", w * 0.5, h * 0.32)
-  ui.menu_items(self.menu, w * 0.5, h * 0.52, 28)
-  love.graphics.setColor(0.45, 0.45, 0.5)
-  love.graphics.print("v0.1.0", 8, h - 20)
+  ui.title("GAME DESIGN", w * 0.5, 40)
+  ui.title("EXAMPLE U", w * 0.5, 68)
+  ui.menu_items(self.menu, w * 0.5, 140, 26)
+  ui.hud_text("v0.2.0", 4, h - 14)
 end
 
 function main_menu.keypressed(self, key)

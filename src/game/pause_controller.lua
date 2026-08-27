@@ -1,5 +1,8 @@
-local menu = require("src.core.menu")
-local ui   = require("src.fw.ui")
+local menu     = require("src.core.menu")
+local palette  = require("src.core.palette")
+local backdrop = require("src.fw.backdrop")
+local retro    = require("src.fw.retro")
+local ui       = require("src.fw.ui")
 
 local pause = {}
 
@@ -17,10 +20,10 @@ function pause.update(_, _dt)
 end
 
 function pause.draw(self)
-  local w, h = love.graphics.getDimensions()
-  love.graphics.clear(0.05, 0.05, 0.08)
-  ui.title("Paused", w * 0.5, h * 0.35)
-  ui.menu_items(self.menu, w * 0.5, h * 0.55, 28)
+  local w, h = retro.getDimensions()
+  backdrop.draw(palette, w, h)
+  ui.title("PAUSED", w * 0.5, 80)
+  ui.menu_items(self.menu, w * 0.5, 140, 26)
 end
 
 function pause.keypressed(self, key)
