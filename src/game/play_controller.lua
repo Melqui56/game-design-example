@@ -158,16 +158,31 @@ end
 function play.draw(self)
   local w, h = retro.getDimensions()
   backdrop.draw(palette, w, h)
-  render.cowboy(self.player, self.moving, self.muzzle)
+  render.ground(w, h)
+
+  local drawables = {}
+  table.insert(drawables, {
+    y = self.player.position.y,
+    fn = function() render.cowboy(self.player, self.moving, self.muzzle) end,
+  })
+  for _, e in ipairs(self.enemies) do
+    local en = e
+    table.insert(drawables, {
+      y = en.position.y,
+      fn = function() render.zombie(en) end,
+    })
+  end
+  table.sort(drawables, function(a, b) return a.y < b.y end)
+  for _, d in ipairs(drawables) do
+    d.fn()
+  end
+
   for _, b in ipairs(self.bullets) do
     render.bullet(b)
   end
   render.particles(self.particles.list)
-  for _, e in ipairs(self.enemies) do
-    render.zombie(e)
-  end
 
-  love.graphics.setColor(0, 0, 0, 0.55)
+  love.graphics.setColor(0, 0, 0, 0.32)
   love.graphics.rectangle("fill", 0, 0, w, h)
   light.draw(self.player.position)
 

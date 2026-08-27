@@ -1,6 +1,6 @@
 local light = {}
 
-local GLOW = 96
+local GLOW = 112
 local glow = nil
 
 local function glow_image()
@@ -12,7 +12,7 @@ local function glow_image()
     love.graphics.setBlendMode("add")
     for r = GLOW, 1, -1 do
       local t = r / GLOW
-      local a = (1 - t) * (1 - t)
+      local a = math.min(1, (1 - t) * (1 - t) * 1.4)
       love.graphics.setColor(1, 0.95, 0.8, a)
       love.graphics.circle("fill", GLOW, GLOW, r)
     end
