@@ -1,3 +1,4 @@
+local bullet   = require("src.core.bullet")
 local enemy    = require("src.core.enemy")
 local palette  = require("src.core.palette")
 local player   = require("src.core.player")
@@ -7,6 +8,8 @@ local input    = require("src.fw.input")
 local render   = require("src.fw.render")
 local retro    = require("src.fw.retro")
 local ui       = require("src.fw.ui")
+
+local FIRE_INTERVAL = 0.22
 
 local play = {}
 
@@ -21,11 +24,21 @@ function play.enter(self)
   self.spawns     = waves.plan(self.wave, self.area)
   self.wave_timer = 0
   self.enemies    = {}
+  self.bullets    = {}
+  self.fire_timer = 0
   self.player     = player.new({ x = w * 0.5, y = h * 0.5 })
 end
 
 function play.update(self, dt)
-  player.update(self.player, input.snapshot(), dt, self.area)
+  local state = input.snapshot()
+  player.update(self.player, state, dt, self.area)
+
+  self.fire_timer = self.fire_timer - dt
+  if state.shoot and self.fire_timer <= 0 then
+    local aim = player.facing(state)
+    table.insert(self.bullets, bullet.new(self.player.position.x, self.player.position.y, aim))
+    self.fire_timer = FIRE_INTERVAL
+  end
 
   self.wave_timer = self.wave_timer + dt
   while self.spawns[1] and self.wave_timer >= self.spawns[1].time do
@@ -37,14 +50,40 @@ function play.update(self, dt)
     enemy.update(e, self.player.position, dt)
   end
 
-  local i = #self.enemies
-  while i >= 1 do
-    local e = self.enemies[i]
+  local bi = #self.bullets
+  while bi >= 1 do
+    local b = self.bullets[bi]
+    bullet.update(b, dt, self.area)
+    if b.dead then
+      table.remove(self.bullets, bi)
+    end
+    bi = bi - 1
+  end
+
+  local ei = #self.enemies
+  while ei >= 1 do
+    local e = self.enemies[ei]
+    local hit = false
+    for j = #self.bullets, 1, -1 do
+      if bullet.touches(self.bullets[j], e) then
+        table.remove(self.bullets, j)
+        hit = true
+      end
+    end
+    if hit and enemy.take_damage(e, 1) then
+      table.remove(self.enemies, ei)
+    end
+    ei = ei - 1
+  end
+
+  local ci = #self.enemies
+  while ci >= 1 do
+    local e = self.enemies[ci]
     if enemy.touches(e, self.player) then
       player.take_damage(self.player, 1)
-      table.remove(self.enemies, i)
+      table.remove(self.enemies, ci)
     end
-    i = i - 1
+    ci = ci - 1
   end
 
   if self.player.hp <= 0 then
@@ -63,6 +102,9 @@ function play.draw(self)
   local w, h = retro.getDimensions()
   backdrop.draw(palette, w, h)
   render.player(self.player)
+  for _, b in ipairs(self.bullets) do
+    render.bullet(b)
+  end
   for _, e in ipairs(self.enemies) do
     render.enemy(e)
   end

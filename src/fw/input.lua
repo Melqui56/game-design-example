@@ -5,6 +5,7 @@ local MAPPING = {
   down  = { "s", "down" },
   left  = { "a", "left" },
   right = { "d", "right" },
+  shoot = { "space" },
 }
 
 local snapshot = {}

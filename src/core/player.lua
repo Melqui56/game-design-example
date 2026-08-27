@@ -46,4 +46,16 @@ function player.take_damage(self, amount)
   return self.hp <= 0
 end
 
+function player.facing(input)
+  local dir = vec2.new(0, 0)
+  if input.up    then dir.y = dir.y - 1 end
+  if input.down  then dir.y = dir.y + 1 end
+  if input.left  then dir.x = dir.x - 1 end
+  if input.right then dir.x = dir.x + 1 end
+  if vec2.length(dir) == 0 then
+    return { x = 0, y = -1 }
+  end
+  return vec2.normalize(dir)
+end
+
 return player

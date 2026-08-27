@@ -24,4 +24,11 @@ function render.enemy(e)
   love.graphics.circle("line", e.position.x, e.position.y, e.radius)
 end
 
+function render.bullet(b)
+  love.graphics.setColor(1, 1, 1, 0.9)
+  love.graphics.rectangle("fill", b.position.x - b.radius, b.position.y - b.radius, b.radius * 2, b.radius * 2)
+  set_color(palette.accent)
+  love.graphics.rectangle("fill", b.position.x - 1, b.position.y - 1, 2, 2)
+end
+
 return render

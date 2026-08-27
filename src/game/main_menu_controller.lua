@@ -32,7 +32,7 @@ function main_menu.draw(self)
   ui.title("GAME DESIGN", w * 0.5, 40)
   ui.title("EXAMPLE U", w * 0.5, 68)
   ui.menu_items(self.menu, w * 0.5, 140, 26)
-  ui.hud_text("v0.2.0", 4, h - 14)
+  ui.hud_text("v0.3.0", 4, h - 14)
 end
 
 function main_menu.keypressed(self, key)
