@@ -47,6 +47,20 @@ local palette = {
   gun_dark     = { 0.20, 0.20, 0.24 },
   steel        = { 0.64, 0.65, 0.72 },
 
+  -- Box-art portrait ramp: finer steps than the in-game sprites, plus the two
+  -- rim lights that sell the illustration (cool moon behind, warm sunset and
+  -- menu glow in front). See assets/sprites/hero.lua.
+  skin_light    = { 0.96, 0.80, 0.62 },
+  skin_deep     = { 0.42, 0.29, 0.21 },
+  stubble       = { 0.50, 0.38, 0.31 },
+  hat_deep      = { 0.17, 0.11, 0.07 },
+  vest          = { 0.38, 0.22, 0.15 },
+  vest_dark     = { 0.23, 0.13, 0.09 },
+  bandana_light = { 0.88, 0.30, 0.24 },
+  steel_light   = { 0.86, 0.88, 0.95 },
+  rim_cool      = { 0.56, 0.64, 0.92 },
+  rim_warm      = { 1.00, 0.72, 0.34 },
+
   -- Title screen scenery
   sky_top     = { 0.05, 0.05, 0.11 },
   sky_mid     = { 0.14, 0.10, 0.20 },

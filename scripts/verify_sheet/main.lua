@@ -72,6 +72,28 @@ function love.load()
   expect(match_ramp(pixel(crect, 2, 2), cactus_ramp, 4), "prop_cactus color")
   expect(match_ramp(pixel(crect, 1, 1), { palette.outline }, 1), "prop_cactus outline")
 
+  -- title portrait: flat-shaded, so every tone must be a ramp base step and
+  -- the bust must still be the size title_art places its anchors against
+  local hrect = atlas.hero_body[1]
+  expect(hrect.w == 80 and hrect.h == 100, "hero_body is 80x100")
+  local hat_deep_ramp = pixelmod.make_ramp(palette.hat_deep)
+  expect(match_ramp(pixel(hrect, 45, 40), hat_deep_ramp, 3), "hero_body brim shadow flat")
+  local eye_ramp = pixelmod.make_ramp(palette.eye_glow)
+  expect(match_ramp(pixel(hrect, 32, 43), eye_ramp, 3), "hero_body eye burning")
+  expect(atlas.hero_idle[1].w == 40 and atlas.hero_idle[1].h == 46,
+    "hero_idle revolver is 40x46")
+
+  -- logo words: composed from the glyph font and bevelled from their own
+  -- edges, so a letter's top-left is the bright step and its inside the base
+  local lrect = atlas.logo_cowboy[1]
+  expect(lrect.w == 92 and lrect.h == 16, "logo_cowboy is 92x16")
+  expect(atlas.logo_zombies[1].w == 103, "logo_zombies is 103 wide")
+  local gold_ramp = pixelmod.make_ramp(palette.gold)
+  -- C of COWBOY: row 3 is "####.....####", so x4 is the lit left edge and
+  -- x2..x3 sit inside the stroke
+  expect(match_ramp(pixel(lrect, 1, 3), gold_ramp, 5), "logo_cowboy bevel highlight")
+  expect(match_ramp(pixel(lrect, 2, 4), gold_ramp, 3), "logo_cowboy bevel interior")
+
   -- all sets have at least one frame
   for k, v in pairs(atlas) do
     expect(type(v) == "table" and #v >= 1, "atlas set has frames: " .. k)

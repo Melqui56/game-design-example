@@ -21,7 +21,8 @@ function gameover.enter(self, score)
   self.best  = save_io.get("high_score", 0)
 end
 
-function gameover.update(_, _dt)
+function gameover.update(self, dt)
+  menu.update(self.menu, dt)
 end
 
 function gameover.draw(self)
@@ -30,7 +31,7 @@ function gameover.draw(self)
   ui.title("GAME OVER", w * 0.5, 60)
   ui.hud_text_centered("SCORE " .. self.score, w * 0.5, 108)
   ui.hud_text_centered("BEST " .. self.best, w * 0.5, 126)
-  ui.menu_items(self.menu, w * 0.5, 160, 30)
+  ui.slant_menu(self.menu, w * 0.5 - 80, 154, { w = 150, step = 34 })
 end
 
 function gameover.keypressed(self, key)

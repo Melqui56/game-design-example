@@ -17,6 +17,12 @@ local title_scene = {}
 -- Intro timeline (seconds).
 local INTRO_DUR = 1.6
 
+-- Menu plates fly in one after another once the intro is nearly done.
+local MENU_START   = 0.74
+local MENU_STAGGER = 0.07
+local MENU_SLIDE   = 0.26
+local MENU_OFFSET  = 160
+
 -- Gun flourish: raise, bang, then hand control back to the caller.
 local FIRE_SHOT = 0.22
 local FIRE_END  = 0.60
@@ -38,6 +44,12 @@ end
 local function ease_out(t)
   local u = 1 - clamp01(t)
   return 1 - u * u * u
+end
+
+-- Overshoots past 1 before settling, so a plate slides in and snaps back.
+local function ease_back(t)
+  local u = clamp01(t) - 1
+  return u * u * (2.7 * u + 1.7) + 1
 end
 
 local function range(rnd, lo, hi)
@@ -108,6 +120,22 @@ function title_scene.new(opts)
     }
   end
 
+  return self
+end
+
+-- Rewinds the intro and cancels any flourish in flight.
+--
+-- The scene object outlives the menu scene, so without this the `fire` timer
+-- from the last PLAY is still finished when the player comes back from pause
+-- or game over, and `fire_done` sends them straight into the game again.
+function title_scene.reset(self)
+  self.t = 0
+  self.intro = 0
+  self.vs_landed = false
+  self.fire = nil
+  anim.restart(self.idle_anim)
+  anim.restart(self.draw_anim)
+  self.shake = shake.new()
   return self
 end
 
@@ -220,19 +248,20 @@ end
 -- Derived layout (pure functions of t / intro)
 -- ---------------------------------------------------------------------------
 
--- Logo transform: the two words slide in from opposite sides, the VS badge
--- punches in on top of them, and everything keeps a slow counter-sway.
+-- Logo transform for the box-art block in the top right: COWBOY slams down
+-- from above the frame, ZOMBIES slides in from the right under it, and the VS
+-- badge punches in on top. Everything keeps a slow counter-sway afterwards.
 function title_scene.logo(self)
   local p = self.intro
-  local a = ease_out(p / 0.45)
-  local b = ease_out((p - 0.12) / 0.45)
+  local a = ease_out(p / 0.40)
+  local b = ease_out((p - 0.14) / 0.42)
   local c = clamp01((p - 0.42) / 0.28)
   local sway = math.sin(self.t * 1.5)
   return {
-    cowboy_dx  = -300 * (1 - a),
-    cowboy_dy  = sway * 1.5,
-    zombies_dx = 300 * (1 - b),
-    zombies_dy = -sway * 1.5,
+    cowboy_dx  = -30 * (1 - a),
+    cowboy_dy  = -120 * (1 - a) + sway * 1.2,
+    zombies_dx = 260 * (1 - b),
+    zombies_dy = -sway * 1.2,
     vs_scale   = 1 + 3.5 * (1 - ease_out(c)),
     vs_alpha   = c,
     alpha      = clamp01(p / 0.18),
@@ -240,17 +269,40 @@ function title_scene.logo(self)
 end
 
 -- Hero rises into frame and keeps breathing once the intro is over.
+--
+-- `bob` is the one-pixel breath of the whole bust: the portrait is a single
+-- frame, so the movement is in the offset rather than in the art.
 function title_scene.hero(self)
   local p = ease_out((self.intro - 0.22) / 0.5)
   return {
     dy    = 34 * (1 - p),
+    bob   = math.sin(self.t * 1.8) < 0 and 1 or 0,
     alpha = p,
     glow  = 0.55 + 0.45 * math.sin(self.t * 2.1),
   }
 end
 
 function title_scene.menu_alpha(self)
-  return clamp01((self.intro - 0.74) / 0.26)
+  return clamp01((self.intro - MENU_START) / (1 - MENU_START))
+end
+
+-- Per-item slide-in: each plate leaves later than the one above it and
+-- overshoots slightly on arrival. Returns `count` entries of { dx, alpha }.
+--
+-- Timed off `t` rather than `intro`, because the stagger runs past the end of
+-- the intro -- keyed to `intro` the last plate would freeze mid-flight when
+-- the intro clamps at 1.
+function title_scene.menu_items(self, count)
+  local out = {}
+  for i = 1, count do
+    local start = MENU_START * INTRO_DUR + (i - 1) * MENU_STAGGER
+    local p = clamp01((self.t - start) / MENU_SLIDE)
+    out[i] = {
+      dx    = MENU_OFFSET * (1 - ease_back(p)),
+      alpha = clamp01(p * 1.6),
+    }
+  end
+  return out
 end
 
 -- Screen offset for the current trauma; rng is injectable for tests.

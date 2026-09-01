@@ -48,3 +48,14 @@ atlas) while keeping the "everything is code / versionable" property.
 - `scripts/verify_sheet` reads the committed PNG and asserts sampled pixels
   (main colors + outline) match the palette — guards against stale sheets.
 - CI gate unchanged: `make check` (lint + headless logic tests).
+
+## Amendment (2026-09-01, ADR-0009)
+
+The build tool gained two things:
+
+- `shade = "bevel"` alongside `"ramp"` and `"flat"`: `pixel.bevel_step` picks a
+  ramp step from a pixel's own four neighbours, so a flat one-colour map comes
+  out chiselled. Used by the logo font.
+- A word compositor: `assets/sprites/logo.lua` declares glyphs and words, and
+  the tool concatenates glyph rows (each glyph carries its own width) into one
+  ASCII map per word before baking it. Adding a word is a line of data.

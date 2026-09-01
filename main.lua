@@ -5,7 +5,11 @@ local app = App.new()
 -- --screenshot mode: enters the play scene, captures a frame after a moment,
 -- and writes screenshot_report.txt + screenshot.png to the LÖVE save dir.
 -- Useful as a QA tool for the play scene.
+--
+-- --screenshot-title stays on the menu instead and waits long enough for the
+-- intro to finish, so the title screen can be reviewed the same way.
 local screenshot_frames = nil
+local screenshot_at = 30
 
 function love.load()
   app:load()
@@ -13,6 +17,9 @@ function love.load()
     if a == "--screenshot" then
       screenshot_frames = 0
       app.scenes:switch("play")
+    elseif a == "--screenshot-title" then
+      screenshot_frames = 0
+      screenshot_at = 150
     end
   end
 end
@@ -39,7 +46,7 @@ function love.update(dt)
   app:update(dt)
   if screenshot_frames then
     screenshot_frames = screenshot_frames + 1
-    if screenshot_frames == 30 then
+    if screenshot_frames == screenshot_at then
       love.graphics.captureScreenshot(function(img)
         local palette = require("src.core.palette")
         local w, h = img:getDimensions()

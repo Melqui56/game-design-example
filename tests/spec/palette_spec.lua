@@ -7,6 +7,9 @@ local REQUIRED = {
   "zombie", "zombie_dark", "mouth", "muzzle",
   "cactus", "rock", "skull", "bush",
   "wood", "roof", "glass", "door",
+  "skin_light", "skin_deep", "stubble", "hat_deep",
+  "vest", "vest_dark", "bandana_light", "steel_light",
+  "rim_cool", "rim_warm",
 }
 
 describe("palette", function()

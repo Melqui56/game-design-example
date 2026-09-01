@@ -44,6 +44,7 @@ local cowboy   = load_data("assets/sprites/cowboy.lua")
 local hero     = load_data("assets/sprites/hero.lua")
 local zombie   = load_data("assets/sprites/zombie.lua")
 local props    = load_data("assets/sprites/props.lua")
+local logo     = load_data("assets/sprites/logo.lua")
 local pixel    = load_data("scripts/pixel.lua")
 
 -- ---------------------------------------------------------------------------
@@ -62,10 +63,13 @@ local function pixel_at(rows, x, y)
 end
 
 -- rows: array of strings; colormap: char -> palette key (string)
--- flat: when true, every pixel uses the key's base color (ramp step 3) instead
--- of the top-left directional gradient. Used by sprites whose shading is
--- authored by hand through explicit light/dark keys (see hero.lua).
-local function bake(rows, colormap, flat)
+-- mode picks how a pixel's ramp step is chosen:
+--   "ramp"  (default) top-left directional gradient across the bounding box
+--   "flat"  every pixel uses the key's base color (step 3); for sprites whose
+--           shading is authored by hand as explicit light/dark keys (hero.lua)
+--   "bevel" emboss the shape from its own edges; for flat one-color maps that
+--           should come out chiselled (logo.lua)
+local function bake(rows, colormap, mode)
   local h = #rows
   local w = #rows[1]
   for _, line in ipairs(rows) do
@@ -101,7 +105,14 @@ local function bake(rows, colormap, flat)
       local key = colormap[ch]
       if key then
         local ramp = ramp_for(key)
-        local step = flat and 3 or pixel.shade_step(w, h, x, y)
+        local step
+        if mode == "flat" then
+          step = 3
+        elseif mode == "bevel" then
+          step = pixel.bevel_step(rows, x, y)
+        else
+          step = pixel.shade_step(w, h, x, y)
+        end
         set(x, y, ramp[step])
       end
     end
@@ -149,6 +160,32 @@ local function packer()
 end
 
 -- ---------------------------------------------------------------------------
+-- Word composition: glyph maps -> one ASCII map for a whole word
+-- ---------------------------------------------------------------------------
+
+-- Glyphs are rectangular but each has its own width, so the word is built row
+-- by row: glyph row r, `tracking` empty columns, next glyph row r.
+local function compose_word(font, text)
+  local gap = string.rep(".", font.tracking)
+  local rows = {}
+  for r = 1, font.glyph_h do
+    local parts = {}
+    for i = 1, #text do
+      local ch = text:sub(i, i)
+      local glyph = font.glyphs[ch]
+      if not glyph then
+        error("logo font has no glyph for " .. string.format("%q", ch))
+      end
+      assert(#glyph == font.glyph_h,
+        "glyph " .. ch .. " must be " .. font.glyph_h .. " rows")
+      table.insert(parts, glyph[r])
+    end
+    rows[r] = table.concat(parts, gap)
+  end
+  return rows
+end
+
+-- ---------------------------------------------------------------------------
 -- Assemble the sheet
 -- ---------------------------------------------------------------------------
 
@@ -157,26 +194,32 @@ local function build_sheet()
   local frames = {}   -- ordered list: { key, w, h, px, x, y }
   local atlas = {}    -- key -> array of rects
 
+  local function emit(key, rows, colormap, mode)
+    local w, h, px = bake(rows, colormap, mode)
+    local x, y = place(w, h)
+    table.insert(frames, { key = key, w = w, h = h, px = px, x = x, y = y })
+    atlas[key] = atlas[key] or {}
+    table.insert(atlas[key], { x = x, y = y, w = w, h = h })
+  end
+
   local function add_set(name, sprite, is_flash)
-    local flat = sprite.shade == "flat"
+    local mode = sprite.shade or "ramp"
     for set_name, set in pairs(sprite.sets) do
       local key = name .. "_" .. set_name .. (is_flash and "_flash" or "")
       atlas[key] = atlas[key] or {}
       for _, rows in ipairs(set.frames) do
-        local w, h, px = bake(rows, sprite.palette, flat)
-        local x, y = place(w, h)
-        table.insert(frames, { key = key, w = w, h = h, px = px, x = x, y = y })
-        table.insert(atlas[key], { x = x, y = y, w = w, h = h })
+        emit(key, rows, sprite.palette, mode)
       end
     end
   end
 
   local function add_prop(name, prop)
-    local w, h, px = bake(prop.rows, { X = prop.color })
-    local x, y = place(w, h)
-    local key = "prop_" .. name
-    table.insert(frames, { key = key, w = w, h = h, px = px, x = x, y = y })
-    atlas[key] = { { x = x, y = y, w = w, h = h } }
+    emit("prop_" .. name, prop.rows, { X = prop.color })
+  end
+
+  local function add_word(font, name, spec)
+    emit("logo_" .. name, compose_word(font, spec.text), { ["#"] = spec.color },
+      font.shade)
   end
 
   add_set("hero", hero, false)
@@ -186,6 +229,9 @@ local function build_sheet()
   add_set("zombie", zombie, true)
   for name, prop in pairs(props) do
     add_prop(name, prop)
+  end
+  for name, spec in pairs(logo.words) do
+    add_word(logo, name, spec)
   end
 
   -- discover final sheet height

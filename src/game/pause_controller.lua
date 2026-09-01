@@ -17,14 +17,15 @@ function pause.enter(_)
   retro.reset_offset()
 end
 
-function pause.update(_, _dt)
+function pause.update(self, dt)
+  menu.update(self.menu, dt)
 end
 
 function pause.draw(self)
   local w, h = retro.getDimensions()
   backdrop.draw(palette, w, h)
   ui.title("PAUSED", w * 0.5, 80)
-  ui.menu_items(self.menu, w * 0.5, 140, 26)
+  ui.slant_menu(self.menu, w * 0.5 - 80, 132, { w = 150, step = 34 })
 end
 
 function pause.keypressed(self, key)

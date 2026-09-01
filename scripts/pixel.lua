@@ -88,4 +88,39 @@ function pixel.shade_step(w, h, x, y)
   return math.max(1, math.min(5, step))
 end
 
+-- ---------------------------------------------------------------------------
+-- Bevel shading: emboss a shape from its own edges
+-- ---------------------------------------------------------------------------
+
+-- Unlike shade_step, which only knows the bounding box, this looks at the four
+-- neighbours of a pixel: edges facing the top-left light get the bright end of
+-- the ramp, edges facing away get the dark end, the interior stays at base.
+-- That turns a flat one-colour glyph map into a chiselled arcade logo without
+-- authoring the highlights by hand. `rows` is the ASCII map, "." = empty.
+function pixel.bevel_step(rows, x, y)
+  local function solid(px, py)
+    local line = rows[py]
+    if not line or px < 1 or px > #line then
+      return false
+    end
+    return line:sub(px, px) ~= "."
+  end
+
+  local up, left = solid(x, y - 1), solid(x - 1, y)
+  if not up and not left then
+    return 5
+  elseif not up or not left then
+    return 4
+  end
+
+  local down, right = solid(x, y + 1), solid(x + 1, y)
+  if not down and not right then
+    return 1
+  elseif not down or not right then
+    return 2
+  end
+
+  return 3
+end
+
 return pixel

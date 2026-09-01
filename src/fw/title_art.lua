@@ -12,28 +12,38 @@
 -- numbers from src/core/title_scene.lua and only draw.
 
 local palette      = require("src.core.palette")
+local retro        = require("src.fw.retro")
 local sprite_atlas = require("src.fw.sprite_atlas")
 local title_scene  = require("src.core.title_scene")
 local ui           = require("src.fw.ui")
 
 local title_art = {}
 
-local VW, VH     = 480, 270
-local HORIZON    = 152
-local HERO_X     = 106
-local HERO_FEET  = 250
-local HERO_SCALE = 3
-local MENU_X     = 344
-local MENU_Y     = 166
-local MENU_STEP  = 22
+local VW, VH  = retro.getDimensions()
+local HORIZON = 152
 
-local LOGO_CX      = 240
-local LOGO_SIZE    = 24
-local COWBOY_Y     = 20
-local ZOMBIES_Y    = 58
-local LOGO_OUTLINE = 2
+-- Box-art composition: the bust bleeds off the bottom left, the logo sits in
+-- a block across the top right, the menu comes in under it on the diagonal.
+local PORTRAIT_X     = -2
+local PORTRAIT_Y     = 70
+local PORTRAIT_SCALE = 2
+local GUN_OX         = 58      -- gun sprite origin, in bust pixels
+local GUN_OY         = 18      -- (fist at body px 66,52 minus the 8,34 grip pivot)
 
-local bg, glow, vig = nil, nil, nil
+local MENU_X    = 278
+local MENU_Y    = 152
+local MENU_STEP = 32
+local MENU_OPTS = { w = 178, h = 26, step = MENU_STEP, skew = 18, size = 10 }
+
+local LOGO_SCALE   = 2
+local COWBOY_X     = 168
+local COWBOY_Y     = 12
+local ZOMBIES_X    = 196
+local ZOMBIES_Y    = 48
+local VS_X         = 176
+local VS_Y         = 54
+
+local bg, glow, vig, slant = nil, nil, nil, nil
 
 -- ---------------------------------------------------------------------------
 -- Small helpers
@@ -251,12 +261,49 @@ local function build_vignette()
   return c
 end
 
+-- The kinetic band the menu sits on: hard diagonal stripes with a halftone
+-- field over them, baked once and then scrolled sideways at runtime. It is
+-- twice the canvas width so the scroll can wrap without a seam.
+local function build_slant()
+  local w = VW * 2
+  local c = love.graphics.newCanvas(w, VH)
+  c:setFilter("nearest", "nearest")
+  love.graphics.push()
+  love.graphics.origin()
+  love.graphics.setCanvas(c)
+  love.graphics.clear(0, 0, 0, 0)
+
+  local skew = 46
+  for x = -skew, w, 34 do
+    set_color(palette.outline, 0.30)
+    love.graphics.polygon("fill", x, VH, x + skew, 0, x + skew + 15, 0, x + 15, VH)
+    set_color(palette.leather, 0.14)
+    love.graphics.polygon("fill", x + 17, VH, x + skew + 17, 0,
+      x + skew + 20, 0, x + 20, VH)
+  end
+
+  -- halftone: dot size falls off downwards, the way a screen print fades
+  for gy = 0, VH, 4 do
+    local t = 1 - gy / VH
+    for gx = (gy % 8 == 0) and 0 or 2, w, 4 do
+      love.graphics.setColor(palette.gold[1], palette.gold[2], palette.gold[3],
+        0.10 * t)
+      love.graphics.rectangle("fill", gx, gy, t > 0.5 and 2 or 1, t > 0.5 and 2 or 1)
+    end
+  end
+
+  love.graphics.setCanvas()
+  love.graphics.pop()
+  return c
+end
+
 -- Must run outside a bound canvas (app.load), never mid-frame.
 function title_art.preload()
   sprite_atlas.load()
   bg = bg or build_background()
   glow = glow or build_glow()
   vig = vig or build_vignette()
+  slant = slant or build_slant()
 end
 
 local function blob(x, y, radius, color, alpha)
@@ -338,55 +385,62 @@ end
 -- Hero
 -- ---------------------------------------------------------------------------
 
--- Where the eyes sit inside the hero frames (sprite pixels, 1-based row).
-local EYE_ROW = { hero_idle = { 11, 12 }, hero_draw = { 11, 11 } }
-local EYE_X   = { 13, 17 }
--- Barrel tip row while the revolver is up (per hero_draw frame).
-local BARREL_ROW = { 20, 19 }
+-- Anchors into the portrait art, in sprite pixels. See assets/sprites/hero.lua:
+-- the eye sits in the bust, the muzzle in whichever revolver frame is up.
+local EYE_PX  = { 32, 42 }
+local MUZZLE_PX = {
+  hero_idle = { { 27, 12 }, { 27, 11 } },
+  hero_draw = { { 24, 8 }, { 19, 3 } },
+}
 
 function title_art.hero(st)
   local img = sprite_atlas.image()
-  if not img then
+  local body = sprite_atlas.quad("hero_body", 1)
+  if not img or not body then
     return
   end
   local set, frame = title_scene.hero_frame(st)
   local h = title_scene.hero(st)
-  local q = sprite_atlas.quad(set, frame)
-  if not q then
-    return
-  end
-  local fw, fh = sprite_atlas.frame_size(set, frame)
-  local x = math.floor(HERO_X - fw * HERO_SCALE * 0.5)
-  local y = math.floor(HERO_FEET - fh * HERO_SCALE + h.dy)
+  local s = PORTRAIT_SCALE
+  local x = PORTRAIT_X
+  local y = math.floor(PORTRAIT_Y + h.dy + h.bob)
 
-  -- moonlit backlight and a soft ground shadow
-  blob(HERO_X, HERO_FEET - 58, 74, palette.sky_ember, 0.20 * h.alpha)
-  love.graphics.setColor(0, 0, 0, 0.42 * h.alpha)
-  love.graphics.ellipse("fill", HERO_X, HERO_FEET - 4, 32, 7)
+  -- the sunset burning behind him, and a slab of shadow he stands against
+  blob(x + 74, y + 70, 132, palette.sky_ember, 0.30 * h.alpha)
+  set_color(palette.outline, 0.30 * h.alpha)
+  love.graphics.polygon("fill", x - 8, VH, x + 18, y - 6, x + 154, y - 6,
+    x + 184, VH)
 
   love.graphics.setColor(1, 1, 1, h.alpha)
-  love.graphics.draw(img, q, x, y, 0, HERO_SCALE, HERO_SCALE)
+  love.graphics.draw(img, body, x, y, 0, s, s)
 
-  -- eyes burning under the hat brim
-  local row = (EYE_ROW[set] or EYE_ROW.hero_idle)[frame] or 11
-  local ey = y + (row - 1) * HERO_SCALE
-  for _, ex in ipairs(EYE_X) do
-    local px = x + (ex - 1) * HERO_SCALE
-    blob(px + HERO_SCALE, ey + HERO_SCALE * 0.5, 9, palette.eye_glow, 0.45 * h.glow * h.alpha)
-    set_color(palette.eye_glow, (0.65 + 0.35 * h.glow) * h.alpha)
-    love.graphics.rectangle("fill", px, ey, HERO_SCALE * 2, HERO_SCALE)
+  -- the revolver, its own sprite so it can cock and kick
+  local gq = sprite_atlas.quad(set, frame)
+  if gq then
+    love.graphics.setColor(1, 1, 1, h.alpha)
+    love.graphics.draw(img, gq, x + GUN_OX * s, y + GUN_OY * s, 0, s, s)
   end
 
-  -- muzzle flash
+  -- the one eye burning in the shadow under the brim
+  local ex = x + EYE_PX[1] * s
+  local ey = y + EYE_PX[2] * s
+  blob(ex + s, ey + s, 14, palette.eye_glow, 0.5 * h.glow * h.alpha)
+  set_color(palette.eye_glow, (0.65 + 0.35 * h.glow) * h.alpha)
+  love.graphics.rectangle("fill", ex, ey, s * 5, s * 2)
+
+  -- muzzle flash, thrown up and to the right along the barrel
   local m = title_scene.muzzle(st)
   if m > 0 then
-    local by = y + (BARREL_ROW[frame] or 20) * HERO_SCALE
-    blob(x - 2, by, 34 * m, palette.muzzle, 0.85 * m)
+    local a = (MUZZLE_PX[set] or MUZZLE_PX.hero_idle)[frame] or { 27, 12 }
+    local mx = x + (GUN_OX + a[1]) * s
+    local my = y + (GUN_OY + a[2]) * s
+    blob(mx, my, 40 * m, palette.muzzle, 0.9 * m)
     set_color(palette.muzzle, m)
-    love.graphics.rectangle("fill", x - 10, by - 2, 12, 4)
-    love.graphics.rectangle("fill", x - 16, by - 1, 8, 2)
+    love.graphics.polygon("fill", mx, my, mx + 20 * m, my - 14 * m,
+      mx + 26 * m, my - 4 * m, mx + 10 * m, my + 6 * m)
     set_color(palette.bone, m)
-    love.graphics.rectangle("fill", x - 7, by - 1, 6, 2)
+    love.graphics.polygon("fill", mx + 2, my, mx + 12 * m, my - 7 * m,
+      mx + 14 * m, my - 1 * m, mx + 5 * m, my + 3 * m)
   end
 end
 
@@ -394,143 +448,110 @@ end
 -- Logo
 -- ---------------------------------------------------------------------------
 
-local OUTLINE_OFFSETS = {
-  { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 },
-  { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 },
-}
-
--- A chunky arcade word: hard outline, drop shadow, lighter top half.
--- The two-tone look is done by drawing the word once, then re-drawing only the
--- top half through a scissor-free overlay trick is unreliable with some
--- backends, so we use a full draw + a translucent band instead.
-local function word(text, cx, y, size, top, bottom, alpha)
-  local f = ui.font(size)
-  love.graphics.setFont(f)
-  local w = f:getWidth(text)
-  local h = f:getHeight()
-  local x = math.floor(cx - w * 0.5)
-
-  set_color(palette.shadow, 0.65 * alpha)
-  love.graphics.print(text, x + 3, y + 4)
-
-  set_color(palette.outline, alpha)
-  for _, o in ipairs(OUTLINE_OFFSETS) do
-    love.graphics.print(text, x + o[1] * LOGO_OUTLINE, y + o[2] * LOGO_OUTLINE)
+-- The words are real sprites now, baked from the glyph font in
+-- assets/sprites/logo.lua, so all this does is place them and hang the
+-- animated ooze off the bottom of ZOMBIES.
+local function logo_word(key, x, y, alpha, shadow)
+  local img = sprite_atlas.image()
+  local q = img and sprite_atlas.quad(key, 1)
+  if not q then
+    return 0, 0
   end
-
-  -- body in the base colour, then a translucent dark band over the bottom
-  -- half to fake the two-tone depth without scissor clipping.
-  set_color(bottom, alpha)
-  love.graphics.print(text, x, y)
-  local half = math.floor(h * 0.46)
-  love.graphics.setColor(bottom[1] * 0.55, bottom[2] * 0.55, bottom[3] * 0.55, alpha * 0.85)
-  love.graphics.rectangle("fill", x, y + half, w, h - half)
-  set_color(top, alpha)
-  love.graphics.print(text, x, y)
-
-  return x, w, h
+  local w, h = sprite_atlas.frame_size(key, 1)
+  if shadow then
+    love.graphics.setColor(palette.shadow[1], palette.shadow[2], palette.shadow[3],
+      0.7 * alpha)
+    love.graphics.draw(img, q, x + 5, y + 6, 0, LOGO_SCALE, LOGO_SCALE)
+  end
+  love.graphics.setColor(1, 1, 1, alpha)
+  love.graphics.draw(img, q, x, y, 0, LOGO_SCALE, LOGO_SCALE)
+  return w * LOGO_SCALE, h * LOGO_SCALE
 end
 
 local function draw_drips(st, x, w, y, alpha)
   for _, d in ipairs(st.drips) do
     local dx = math.floor(x + d.offset * w)
     set_color(palette.rot_dark, alpha)
-    love.graphics.rectangle("fill", dx, y, 2, d.len)
+    love.graphics.rectangle("fill", dx, y, 3, d.len)
     set_color(palette.rot, alpha)
-    love.graphics.rectangle("fill", dx, y + d.len - 2, 2, 2)
+    love.graphics.rectangle("fill", dx, y + d.len - 2, 3, 2)
   end
+end
+
+-- A torn red slash behind ZOMBIES, the way a poster gets a banner ripped
+-- across it. Drawn under the word so the letters sit on top of the tear.
+local function draw_slash(x, y, w, alpha)
+  set_color(palette.blood_dark, 0.9 * alpha)
+  love.graphics.polygon("fill", x - 14, y + 30, x + 8, y - 6, x + w + 18, y - 2,
+    x + w - 2, y + 34)
+  set_color(palette.blood, 0.85 * alpha)
+  love.graphics.polygon("fill", x - 10, y + 26, x + 10, y - 2, x + w + 12, y + 2,
+    x + w - 6, y + 30)
 end
 
 local function draw_vs(cx, cy, scale, alpha)
   if alpha <= 0 then
     return
   end
-  local f = ui.font(10)
-  love.graphics.setFont(f)
-  local tw = f:getWidth("VS")
-  local th = f:getHeight()
+  local img = sprite_atlas.image()
+  local q = img and sprite_atlas.quad("logo_vs", 1)
   love.graphics.push()
   love.graphics.translate(cx, cy)
   love.graphics.scale(scale, scale)
+  -- a jagged shard rather than a tidy badge
   set_color(palette.outline, alpha)
-  love.graphics.rectangle("fill", -21, -10, 42, 20)
-  set_color(palette.blood_dark, alpha)
-  love.graphics.rectangle("fill", -19, -8, 38, 16)
+  love.graphics.polygon("fill", -30, -2, -12, -19, 6, -14, 30, -18, 22, 1,
+    32, 16, 8, 13, -10, 20, -14, 5)
   set_color(palette.blood, alpha)
-  love.graphics.rectangle("fill", -19, -8, 38, 12)
-  set_color(palette.outline, alpha * 0.8)
-  love.graphics.rectangle("fill", -16, -6, 2, 2)
-  love.graphics.rectangle("fill", 14, 2, 2, 2)
-  set_color(palette.bone, alpha)
-  love.graphics.print("VS", -tw * 0.5, -th * 0.5)
+  love.graphics.polygon("fill", -26, -2, -10, -16, 6, -11, 26, -15, 19, 1,
+    27, 13, 7, 10, -9, 16, -12, 4)
+  if q then
+    local w, h = sprite_atlas.frame_size("logo_vs", 1)
+    love.graphics.setColor(1, 1, 1, alpha)
+    love.graphics.draw(img, q, -w * 0.5, -h * 0.5)
+  end
   love.graphics.pop()
 end
 
 function title_art.logo(st)
   local l = title_scene.logo(st)
 
-  word("COWBOY", LOGO_CX + l.cowboy_dx, COWBOY_Y + l.cowboy_dy, LOGO_SIZE,
-    palette.gold, palette.leather, l.alpha)
+  local zx = ZOMBIES_X + l.zombies_dx
+  local zy = ZOMBIES_Y + l.zombies_dy
+  local zw = sprite_atlas.frame_size("logo_zombies", 1) or 0
+  draw_slash(zx, zy, zw * LOGO_SCALE, l.alpha)
 
-  local zx, zw, zh = word("ZOMBIES", LOGO_CX + l.zombies_dx, ZOMBIES_Y + l.zombies_dy,
-    LOGO_SIZE, palette.rot, palette.rot_dark, l.alpha)
-  draw_drips(st, zx, zw, ZOMBIES_Y + l.zombies_dy + zh - 2, l.alpha * l.vs_alpha)
+  logo_word("logo_cowboy", COWBOY_X + l.cowboy_dx, COWBOY_Y + l.cowboy_dy,
+    l.alpha, true)
+  local zpw, zph = logo_word("logo_zombies", zx, zy, l.alpha, true)
+  draw_drips(st, zx, zpw, zy + zph - 2, l.alpha * l.vs_alpha)
 
-  draw_vs(LOGO_CX + 118, COWBOY_Y + 30, l.vs_scale, l.vs_alpha)
-
-  -- hairline rule under the logo
-  local a = l.vs_alpha * 0.7
-  local ry = ZOMBIES_Y + zh + 12
-  set_color(palette.leather, a)
-  love.graphics.rectangle("fill", LOGO_CX - 104, ry, 208, 1)
-  set_color(palette.gold, a)
-  love.graphics.rectangle("fill", LOGO_CX - 106, ry - 2, 4, 4)
-  love.graphics.rectangle("fill", LOGO_CX + 102, ry - 2, 4, 4)
+  draw_vs(VS_X, VS_Y, l.vs_scale, l.vs_alpha)
 end
 
 -- ---------------------------------------------------------------------------
 -- Menu
 -- ---------------------------------------------------------------------------
 
-local function bullet(x, y, alpha)
-  set_color(palette.outline, alpha)
-  love.graphics.rectangle("fill", x - 1, y - 1, 11, 7)
-  set_color(palette.leather, alpha)
-  love.graphics.rectangle("fill", x, y, 5, 5)
-  set_color(palette.gold, alpha)
-  love.graphics.polygon("fill", x + 5, y, x + 10, y + 2.5, x + 5, y + 5)
-  set_color(palette.bone, alpha * 0.8)
-  love.graphics.rectangle("fill", x + 1, y + 1, 3, 1)
+-- The stripe field the menu block sits on, scrolling slowly sideways.
+function title_art.slant(st, alpha)
+  if not slant or alpha <= 0 then
+    return
+  end
+  local off = -(st.t * 7) % VW
+  love.graphics.setColor(1, 1, 1, alpha)
+  love.graphics.draw(slant, math.floor(off) - VW, 0)
 end
 
 function title_art.menu(m, st, alpha)
   if alpha <= 0 then
     return
   end
-  local f = ui.font(10)
-  love.graphics.setFont(f)
-  local pulse = math.sin(st.t * 6) * 1.5
-
-  for i, label in ipairs(m.items) do
-    local selected = i == m.cursor
-    local y = MENU_Y + (i - 1) * MENU_STEP
-    local w = f:getWidth(label)
-    local x = math.floor(MENU_X - w * 0.5)
-
-    if selected then
-      set_color(palette.leather_dark, 0.55 * alpha)
-      love.graphics.rectangle("fill", MENU_X - 82, y - 5, 164, f:getHeight() + 9)
-      set_color(palette.leather, 0.85 * alpha)
-      love.graphics.rectangle("fill", MENU_X - 82, y - 5, 164, 1)
-      love.graphics.rectangle("fill", MENU_X - 82, y + f:getHeight() + 3, 164, 1)
-      bullet(math.floor(x - 22 + pulse), y + 2, alpha)
-    end
-
-    set_color(palette.shadow, alpha)
-    love.graphics.print(label, x + 1, y + 1)
-    set_color(selected and palette.gold or palette.muted, alpha)
-    love.graphics.print(label, x, y)
-  end
+  ui.slant_menu(m, MENU_X, MENU_Y, {
+    w = MENU_OPTS.w, h = MENU_OPTS.h, step = MENU_OPTS.step,
+    skew = MENU_OPTS.skew, size = MENU_OPTS.size,
+    alpha = alpha, anim = title_scene.menu_items(st, #m.items),
+  })
 end
 
 function title_art.footer(best, version, alpha)
@@ -538,11 +559,11 @@ function title_art.footer(best, version, alpha)
     local f = ui.font(10)
     love.graphics.setFont(f)
     local text = "BEST  " .. best
-    local x = math.floor(MENU_X - f:getWidth(text) * 0.5)
+    local x = math.floor(MENU_X + MENU_OPTS.w * 0.5 - f:getWidth(text) * 0.5)
     set_color(palette.shadow, alpha)
-    love.graphics.print(text, x + 1, 239)
+    love.graphics.print(text, x + 1, 251)
     set_color(palette.bone, 0.85 * alpha)
-    love.graphics.print(text, x, 238)
+    love.graphics.print(text, x, 250)
   end
   ui.hud_text(version, 5, VH - 14)
   ui.hud_text_right("ARROWS  ENTER", VW - 5, VH - 14)

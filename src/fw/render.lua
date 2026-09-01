@@ -202,33 +202,56 @@ function render.pickup(pk)
   love.graphics.rectangle("fill", gx - 1, dy + bob - 1, 2, 2)
 end
 
+-- O outlines the shape, X is the body, H the specular the light catches.
 local HEART = {
-  ".XX.XX.",
-  "XXXXXXX",
-  "XXXXXXX",
-  ".XXXXX.",
-  "..XXX..",
-  "...X...",
+  ".OO.OO.",
+  "OHXOXXO",
+  "OXXXXXO",
+  "OXXXXXO",
+  ".OXXXO.",
+  "..OXO..",
+  "...O...",
 }
 
-function render.icon(sprite, x, y, color)
-  love.graphics.setColor(color[1], color[2], color[3])
+function render.icon(sprite, x, y, color, outline, hi)
   for row, line in ipairs(sprite) do
     for col = 1, #line do
-      if line:sub(col, col) == "X" then
+      local ch = line:sub(col, col)
+      local c = (ch == "X" and color) or (ch == "O" and outline)
+        or (ch == "H" and hi) or nil
+      if c then
+        love.graphics.setColor(c[1], c[2], c[3], c[4] or 1)
         love.graphics.rectangle("fill", x + col - 1, y + row - 1, 1, 1)
       end
     end
   end
 end
 
-function render.hearts(amount, max, x, y)
+-- Hearts beat faster the closer the player is to dying, so the HUD carries
+-- the danger instead of just reporting it. `pulse` is a free-running clock.
+function render.hearts(amount, max, x, y, pulse)
+  local low = amount <= math.max(1, math.floor(max * 0.34))
+  local beat = 0
+  if low and pulse then
+    beat = math.max(0, math.sin(pulse * 7))
+  end
   for i = 1, max do
-    if i <= amount then
-      render.icon(HEART, x + (i - 1) * 9, y, palette.danger)
-    else
-      render.icon(HEART, x + (i - 1) * 9, y, palette.muted)
+    local filled = i <= amount
+    local bx = x + (i - 1) * 9
+    local by = y
+    local body, hi = palette.muted, palette.muted
+    if filled then
+      body, hi = palette.danger, palette.bone
+      if low then
+        by = y - math.floor(beat * 1.5)
+        body = {
+          palette.danger[1] + beat * 0.15,
+          palette.danger[2] + beat * 0.10,
+          palette.danger[3] + beat * 0.10,
+        }
+      end
     end
+    render.icon(HEART, bx, by, body, palette.outline, hi)
   end
 end
 

@@ -65,4 +65,34 @@ describe("pixel", function()
       assert.are.equal(3, pixel.shade_step(1, 1, 1, 1))
     end)
   end)
+
+  describe("bevel_step", function()
+    local block = {
+      "....",
+      ".##.",
+      ".##.",
+      "....",
+    }
+
+    it("brightens the corner facing the light", function()
+      assert.are.equal(5, pixel.bevel_step(block, 2, 2))
+    end)
+
+    it("darkens the corner facing away", function()
+      assert.are.equal(1, pixel.bevel_step(block, 3, 3))
+    end)
+
+    it("gives an edge lit on one side the middle-high step", function()
+      assert.are.equal(4, pixel.bevel_step(block, 3, 2))
+      assert.are.equal(4, pixel.bevel_step(block, 2, 3))
+    end)
+
+    it("leaves the interior of a solid shape at the base step", function()
+      local solid = {}
+      for y = 1, 5 do
+        solid[y] = "#####"
+      end
+      assert.are.equal(3, pixel.bevel_step(solid, 3, 3))
+    end)
+  end)
 end)

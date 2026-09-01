@@ -3,6 +3,7 @@ local camera    = require("src.core.camera")
 local enemy     = require("src.core.enemy")
 local map       = require("src.core.map")
 local particles = require("src.core.particles")
+local palette   = require("src.core.palette")
 local pickup    = require("src.core.pickup")
 local player    = require("src.core.player")
 local shake     = require("src.core.shake")
@@ -18,6 +19,9 @@ local ui        = require("src.fw.ui")
 
 local WORLD_W = 960
 local WORLD_H = 540
+
+-- how long the new-wave banner takes to fly through, in seconds
+local BANNER_TIME = 1.6
 
 local play = {}
 
@@ -59,10 +63,21 @@ function play.enter(self)
   self.particles  = particles.new()
   self.shake      = shake.new()
   self.score      = 0
+  self.hud_t      = 0
+  self.banner     = 0
+  self.score_pop  = 0
   self.player     = player.new({ x = WORLD_W * 0.5, y = WORLD_H * 0.5 })
 end
 
 function play.update(self, dt)
+  self.hud_t = self.hud_t + dt
+  if self.banner > 0 then
+    self.banner = math.max(0, self.banner - dt / BANNER_TIME)
+  end
+  if self.score_pop > 0 then
+    self.score_pop = math.max(0, self.score_pop - dt * 4)
+  end
+
   local state = input.snapshot()
   player.update(self.player, state, dt, self.area)
   camera.follow(self.camera, self.player.position)
@@ -133,6 +148,7 @@ function play.update(self, dt)
         particles.burst(self.particles, e.position.x, e.position.y, { count = 10 })
         shake.add(self.shake, 0.3)
         self.score = self.score + 10 * self.player.damage
+        self.score_pop = 1
         sfx.play("kill", 0.45)
         if love.math.random() < 0.22 then
           local picks = upgrades.choose(upgrades.pool(), 1)
@@ -169,6 +185,8 @@ function play.update(self, dt)
     self.wave       = self.wave + 1
     self.spawns     = waves.plan(self.wave, self.area)
     self.wave_timer = 0
+    self.banner     = 1
+    self.wave_total = nil
   end
 
   local pi = #self.pickups
@@ -226,11 +244,35 @@ function play.draw(self)
   love.graphics.rectangle("fill", 0, 0, vw, vh)
   light.draw({ x = self.player.position.x - self.camera.x, y = self.player.position.y - self.camera.y })
 
-  love.graphics.setColor(0, 0, 0, 0.45)
-  love.graphics.rectangle("fill", 0, 0, vw, 13)
-  render.hearts(self.player.hp, self.player.max_hp, 4, 3)
-  ui.hud_text_centered("WAVE " .. self.wave, vw * 0.5, 2)
-  ui.hud_text_right("SCORE " .. self.score, vw - 4, 2)
+  -- HUD: the same slanted plates the menus are built from, so the title
+  -- screen and the play scene read as one piece of design.
+  local hp_w = math.max(66, self.player.max_hp * 9 + 14)
+  ui.slant_panel(4, 4, hp_w, 26, {
+    skew = 8, fill = palette.outline, fill_alpha = 0.80,
+    rule = palette.leather, tip = palette.blood,
+  })
+  love.graphics.setFont(ui.font(8))
+  love.graphics.setColor(palette.muted[1], palette.muted[2], palette.muted[3], 0.85)
+  love.graphics.print("HP", 16, 9)
+  render.hearts(self.player.hp, self.player.max_hp, 16, 19, self.hud_t)
+
+  ui.hud_stat(vw - 196, 4, 80, "WAVE", tostring(self.wave), { tip = palette.gold })
+  ui.hud_stat(vw - 104, 4, 92, "SCORE", tostring(self.score),
+    { pop = self.score_pop })
+
+  -- how much of the wave is still out there, as a hairline under the plates
+  local left = #self.spawns + #self.enemies
+  if left > 0 then
+    local total = math.max(left, self.wave_total or left)
+    self.wave_total = total
+    love.graphics.setColor(palette.rot[1], palette.rot[2], palette.rot[3], 0.8)
+    love.graphics.rectangle("fill", vw - 188, 32, 72 * (left / total), 2)
+    love.graphics.setColor(palette.outline[1], palette.outline[2], palette.outline[3], 0.6)
+    love.graphics.rectangle("fill", vw - 188 + 72 * (left / total), 32,
+      72 * (1 - left / total), 2)
+  end
+
+  ui.banner("WAVE " .. self.wave, vw, vw * 0.5, 92, 1 - self.banner)
 end
 
 function play.keypressed(self, key)

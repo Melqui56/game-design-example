@@ -16,12 +16,17 @@ function main_menu.new(sm)
   }, { __index = main_menu })
 end
 
-function main_menu.enter(_)
+function main_menu.enter(self)
   retro.reset_offset()
+  -- the scene object outlives the scene, so rewind it or the finished
+  -- flourish from the last PLAY drops us straight back into the game
+  title_scene.reset(self.scene)
+  self.help = false
 end
 
 function main_menu.update(self, dt)
   title_scene.update(self.scene, dt)
+  menu.update(self.menu, dt)
   if title_scene.fire_done(self.scene) then
     self.sm:switch("play")
   end
@@ -31,8 +36,9 @@ function main_menu.draw(self)
   local alpha = title_scene.menu_alpha(self.scene)
 
   title_art.background(self.scene)
-  title_art.hero(self.scene)
+  title_art.slant(self.scene, alpha)
   title_art.logo(self.scene)
+  title_art.hero(self.scene)
   title_art.menu(self.menu, self.scene, alpha)
   title_art.footer(save_io.get("high_score", 0), "v0.1.0", alpha)
   title_art.vignette()

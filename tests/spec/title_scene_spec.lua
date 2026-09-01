@@ -60,3 +60,56 @@ describe("title_scene", function()
     assert.is_true(title_scene.menu_alpha(s) > 0.99)
   end)
 end)
+
+describe("title_scene reset", function()
+  local function rng(_n) return 0.5 end
+
+  it("cancels a finished flourish so the menu does not bounce into play", function()
+    local s = title_scene.new({ rng = rng })
+    title_scene.start_fire(s)
+    title_scene.update(s, 0.7, rng)
+    assert.is_true(title_scene.fire_done(s))
+    title_scene.reset(s)
+    assert.is_false(title_scene.fire_done(s))
+    assert.is_false(title_scene.firing(s))
+  end)
+
+  it("rewinds the intro", function()
+    local s = title_scene.new({ rng = rng })
+    title_scene.update(s, 2, rng)
+    assert.are.equal(1, s.intro)
+    title_scene.reset(s)
+    assert.are.equal(0, s.intro)
+  end)
+end)
+
+describe("title_scene menu_items", function()
+  local function rng(_n) return 0.5 end
+
+  it("holds every plate offscreen until the intro is nearly done", function()
+    local s = title_scene.new({ rng = rng })
+    local items = title_scene.menu_items(s, 3)
+    assert.are.equal(3, #items)
+    for _, it in ipairs(items) do
+      assert.are.equal(0, it.alpha)
+      assert.is_true(it.dx > 100)
+    end
+  end)
+
+  it("staggers them, later plates trailing the earlier ones", function()
+    local s = title_scene.new({ rng = rng })
+    title_scene.update(s, 1.6 * 0.80, rng)
+    local items = title_scene.menu_items(s, 3)
+    assert.is_true(items[1].alpha > items[2].alpha)
+    assert.is_true(items[2].alpha >= items[3].alpha)
+  end)
+
+  it("settles every plate in place once the intro is over", function()
+    local s = title_scene.new({ rng = rng })
+    title_scene.update(s, 3, rng)
+    for _, it in ipairs(title_scene.menu_items(s, 3)) do
+      assert.are.equal(1, it.alpha)
+      assert.are.equal(0, it.dx)
+    end
+  end)
+end)
