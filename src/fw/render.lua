@@ -1,22 +1,124 @@
-local palette = require("src.core.palette")
-local sprites = require("src.fw.sprites")
+-- render.lua — draw everything through a single SpriteBatch.
+--
+-- The renderer collects sprite draws during a frame, sorts them by world Y
+-- (painter's algorithm), and flushes them in ONE SpriteBatch draw call. The
+-- outline and hit-flash effects are applied via a pixel shader instead of
+-- baked sprites.
+
+local palette      = require("src.core.palette")
+local sprite_atlas = require("src.fw.sprite_atlas")
+local shaders      = require("src.fw.shaders")
 
 local render = {}
 
 local VERTICAL = 0.82
 
-local function set_color(c)
-  love.graphics.setColor(c[1], c[2], c[3])
-end
-
 local function sy(y)
   return math.floor(y * VERTICAL)
+end
+
+local function set_color(c)
+  love.graphics.setColor(c[1], c[2], c[3])
 end
 
 local function shadow(x, y, rx, ry)
   love.graphics.setColor(0, 0, 0, 0.35)
   love.graphics.ellipse("fill", x, y, rx, ry)
 end
+
+-- ---------------------------------------------------------------------------
+-- SpriteBatch pipeline
+-- ---------------------------------------------------------------------------
+
+local batch = nil
+local sprites = {}
+local shadows = {}
+local overlays = {}
+local MAX_SPRITES = 1024
+
+-- Preload GPU resources (image, quads, sprite batch). Must run OUTSIDE any
+-- active canvas (i.e. from love.load / app.load), because creating textures
+-- while a canvas is bound silently fails on some LÖVE backends.
+function render.preload()
+  sprite_atlas.load()
+  if not batch then
+    batch = love.graphics.newSpriteBatch(sprite_atlas.image(), MAX_SPRITES, "stream")
+  end
+end
+
+function render.begin()
+  sprites = {}
+  shadows = {}
+  overlays = {}
+end
+
+-- Diagnostic helper (used by the screenshot/debug mode).
+function render.debug_count()
+  return #sprites, #shadows, #overlays
+end
+
+-- Queues a sprite. set_name/frame index into the atlas; flash uses the shader.
+local function add_sprite(set_name, frame, x, y, flip, scale, flash, outline)
+  local fw, fh = sprite_atlas.frame_size(set_name, frame)
+  table.insert(sprites, {
+    set_name = set_name,
+    frame = frame,
+    x = x,
+    dy = sy(y),
+    y = y,
+    flip = flip or 1,
+    scale = scale or 1,
+    fw = fw,
+    fh = fh,
+    flash = flash or false,
+    outline = outline,
+  })
+end
+
+function render.cowboy(p, moving, muzzle, flash)
+  local set_name
+  if p.recoil > 0 then
+    set_name = "cowboy_shoot"
+  elseif moving then
+    set_name = "cowboy_walk"
+  else
+    set_name = "cowboy_idle"
+  end
+  local a = moving and p.walk_anim or p.idle_anim
+  if p.recoil > 0 then
+    a = p.shoot_anim
+  end
+  local flip = p.aim.x < 0 and -1 or 1
+  table.insert(shadows, { x = p.position.x, y = p.position.y, rx = 5, ry = 2 })
+  add_sprite(set_name, a.frame, p.position.x, p.position.y, flip, 1, flash or p.flash)
+
+  -- muzzle flash overlay drawn on top of the sprite
+  if muzzle and muzzle > 0 then
+    local mx = p.position.x + p.aim.x * 10
+    local my = p.position.y + p.aim.y * 10
+    table.insert(overlays, {
+      x = mx - 2, y = sy(my) - 2, w = 4, h = 4,
+      color = palette.muzzle,
+    })
+  end
+end
+
+function render.zombie(e, flash)
+  local set_name = e.attacking and "zombie_attack" or "zombie_walk"
+  local a = e.attacking and e.attack_anim or e.walk_anim
+  local flip = (e.target.x < e.position.x) and -1 or 1
+  table.insert(shadows, { x = e.position.x, y = e.position.y, rx = 5 * e.scale, ry = 2 * e.scale })
+  add_sprite(set_name, a.frame, e.position.x, e.position.y, flip, e.scale, flash or e.flash)
+end
+
+function render.prop(pr)
+  table.insert(shadows, { x = pr.x, y = pr.y, rx = 4, ry = 2 })
+  add_sprite("prop_" .. pr.kind, 1, pr.x, pr.y, 1, 1, false)
+end
+
+-- ---------------------------------------------------------------------------
+-- Primitives (ground, buildings, bullets, pickups, particles, effects)
+-- ---------------------------------------------------------------------------
 
 local ground_tile_cache = nil
 
@@ -76,69 +178,12 @@ function render.building(b)
   love.graphics.rectangle("fill", gx + b.w * 0.5 - 7, dy - b.h + 4, 4, 4)
 end
 
-function render.cowboy(p, moving, muzzle)
-  sprites.ensure()
-  local gx = p.position.x
-  local gy = p.position.y
-  shadow(gx, gy, 5, 2)
-  local dy = sy(gy)
-
-  local frames = p.flash and sprites.cowboy_flash or sprites.cowboy
-  local a = moving and p.walk_anim or p.idle_anim
-  local img = frames[a.frame]
-  local w = img:getWidth()
-  local h = img:getHeight()
-  local sx = 1
-  if p.aim.x < 0 then
-    sx = -1
-  end
-  love.graphics.setColor(1, 1, 1, 1)
-  love.graphics.draw(img, gx, dy, 0, sx, 1, w * 0.5, h * 0.5)
-
-  local bx = gx + p.aim.x * 6
-  local by = dy + p.aim.y * 6
-  set_color(palette.boot)
-  love.graphics.rectangle("fill", bx - 1, by - 1, 2, 4)
-
-  if muzzle and muzzle > 0 then
-    set_color(palette.muzzle)
-    love.graphics.rectangle("fill", gx + p.aim.x * 10 - 2, dy + p.aim.y * 10 - 2, 4, 4)
-  end
-end
-
-function render.zombie(e)
-  sprites.ensure()
-  local gx = e.position.x
-  local gy = e.position.y
-  shadow(gx, gy, 5 * e.scale, 2 * e.scale)
-  local dy = sy(gy)
-
-  local frames = e.flash and sprites.zombie_flash or sprites.zombie
-  local img = frames[e.anim.frame] or frames[1]
-  local w = img:getWidth()
-  local h = img:getHeight()
-  local sx = 1
-  if e.target.x < e.position.x then
-    sx = -1
-  end
-  love.graphics.setColor(1, 1, 1, 1)
-  love.graphics.draw(img, gx, dy, 0, sx * e.scale, e.scale, w * 0.5, h * 0.5)
-end
-
-function render.prop(pr)
-  sprites.ensure()
-  local img = sprites.props[pr.kind]
-  if not img then
-    return
-  end
-  local gx = pr.x
-  local gy = pr.y
-  shadow(gx, gy, 4, 2)
-  local dy = sy(gy)
-  local w = img:getWidth()
-  local h = img:getHeight()
-  love.graphics.setColor(1, 1, 1, 1)
-  love.graphics.draw(img, gx, dy, 0, 1, 1, w * 0.5, h * 0.5)
+function render.bullet(b)
+  local dy = sy(b.position.y)
+  love.graphics.setColor(1, 1, 1, 0.9)
+  love.graphics.rectangle("fill", b.position.x - b.radius, dy - b.radius, b.radius * 2, b.radius * 2)
+  set_color(palette.muzzle)
+  love.graphics.rectangle("fill", b.position.x - 1, dy - 1, 2, 2)
 end
 
 function render.pickup(pk)
@@ -155,14 +200,6 @@ function render.pickup(pk)
     gx - 5, dy + bob)
   love.graphics.setColor(1, 1, 1, 0.9)
   love.graphics.rectangle("fill", gx - 1, dy + bob - 1, 2, 2)
-end
-
-function render.bullet(b)
-  local dy = sy(b.position.y)
-  love.graphics.setColor(1, 1, 1, 0.9)
-  love.graphics.rectangle("fill", b.position.x - b.radius, dy - b.radius, b.radius * 2, b.radius * 2)
-  set_color(palette.muzzle)
-  love.graphics.rectangle("fill", b.position.x - 1, dy - 1, 2, 2)
 end
 
 local HEART = {
@@ -200,6 +237,64 @@ function render.particles(list)
     local t = p.life / p.max_life
     love.graphics.setColor(palette.zombie[1], palette.zombie[2], palette.zombie[3], t)
     love.graphics.rectangle("fill", p.x - p.size * 0.5, sy(p.y) - p.size * 0.5, p.size, p.size)
+  end
+end
+
+-- ---------------------------------------------------------------------------
+-- Flush
+-- ---------------------------------------------------------------------------
+
+-- Flushes the queued sprites sorted by world Y, with shadows below and
+-- overlays above.
+function render.flush()
+  -- ground shadows under the sprites
+  love.graphics.setColor(0, 0, 0, 0.35)
+  for _, sh in ipairs(shadows) do
+    love.graphics.ellipse("fill", sh.x, sh.y, sh.rx, sh.ry)
+  end
+
+  -- sprites, sorted by Y, one SpriteBatch draw call
+  table.sort(sprites, function(a, b) return a.y < b.y end)
+  batch:clear()
+
+  local batch_outline = nil
+  local batch_flash = nil
+  local use_shader = os.getenv("LOVE_NOSHADER") == nil
+  local function begin_segment(outline, flash)
+    if batch_outline == outline and batch_flash == flash then
+      return
+    end
+    batch:flush()
+    if use_shader then
+      if flash then
+        shaders.flash()
+      else
+        shaders.outline(outline or palette.outline)
+      end
+    end
+    batch_outline = outline
+    batch_flash = flash
+  end
+
+  love.graphics.setColor(1, 1, 1, 1)
+  if os.getenv("LOVE_NOSHADER") == nil then
+    love.graphics.setShader(shaders.sprite)
+  end
+  for _, s in ipairs(sprites) do
+    local quad = sprite_atlas.quad(s.set_name, s.frame)
+    if quad then
+      begin_segment(s.outline, s.flash)
+      batch:add(quad, s.x, s.dy, 0, s.flip * s.scale, s.scale, s.fw * 0.5, s.fh * 0.5)
+    end
+  end
+  batch:flush()
+  love.graphics.draw(batch)
+  love.graphics.setShader()
+
+  -- overlays on top (muzzle flash, etc.)
+  for _, o in ipairs(overlays) do
+    love.graphics.setColor(o.color[1], o.color[2], o.color[3])
+    love.graphics.rectangle("fill", o.x, o.y, o.w, o.h)
   end
 end
 

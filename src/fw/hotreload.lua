@@ -17,8 +17,25 @@ local function scan(path, out)
   return out
 end
 
+local function dev_requested()
+  if os.getenv("LOVE_DEV") ~= nil then
+    return true
+  end
+  for _, a in ipairs(love.arg or {}) do
+    if a == "--dev" then
+      return true
+    end
+  end
+  for _, a in ipairs(arg or {}) do
+    if a == "--dev" then
+      return true
+    end
+  end
+  return false
+end
+
 function hotreload.setup()
-  if os.getenv("LOVE_DEV") == nil then
+  if not dev_requested() then
     return false
   end
   tracked = scan("src", {})

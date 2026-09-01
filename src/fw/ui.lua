@@ -14,6 +14,11 @@ local function font(size)
   return f
 end
 
+-- Public: shared font cache, so other modules draw with the same pixel font.
+function ui.font(size)
+  return font(size)
+end
+
 local function set_color(c, alpha)
   love.graphics.setColor(c[1], c[2], c[3], alpha or 1)
 end

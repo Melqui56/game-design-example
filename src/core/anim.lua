@@ -31,4 +31,11 @@ function anim.update(self, dt)
   return self
 end
 
+function anim.restart(self)
+  self.timer = 0
+  self.frame = 1
+  self.done = false
+  return self
+end
+
 return anim

@@ -88,6 +88,7 @@ function play.update(self, dt)
       { speed = self.player.bullet_speed, radius = self.player.bullet_radius, damage = self.player.damage }))
     self.fire_timer = self.player.fire_interval
     self.muzzle     = 0.08
+    player.shoot(self.player)
     sfx.play("shoot", 0.5)
   end
 
@@ -196,37 +197,20 @@ function play.draw(self)
   love.graphics.translate(-self.camera.x, -self.camera.y)
 
   render.ground(WORLD_W, WORLD_H)
+  render.begin()
 
-  local drawables = {}
   for _, b in ipairs(self.buildings) do
-    local bb = b
-    table.insert(drawables, {
-      y = bb.y,
-      fn = function() render.building(bb) end,
-    })
+    render.building(b)
   end
   for _, pr in ipairs(self.props) do
-    local pp = pr
-    table.insert(drawables, {
-      y = pp.y,
-      fn = function() render.prop(pp) end,
-    })
+    render.prop(pr)
   end
-  table.insert(drawables, {
-    y = self.player.position.y,
-    fn = function() render.cowboy(self.player, self.moving, self.muzzle) end,
-  })
+  render.cowboy(self.player, self.moving, self.muzzle)
   for _, e in ipairs(self.enemies) do
-    local en = e
-    table.insert(drawables, {
-      y = en.position.y,
-      fn = function() render.zombie(en) end,
-    })
+    render.zombie(e)
   end
-  table.sort(drawables, function(a, b) return a.y < b.y end)
-  for _, d in ipairs(drawables) do
-    d.fn()
-  end
+
+  render.flush()
 
   for _, b in ipairs(self.bullets) do
     render.bullet(b)

@@ -50,8 +50,10 @@ function player.new(opts)
     bullet_radius = o.bullet_radius or DEFAULTS.bullet_radius,
     flash    = false,
     aim      = { x = 0, y = -1 },
+    recoil   = 0,
     idle_anim = anim.new(2, 4),
     walk_anim = anim.new(2, 8),
+    shoot_anim = anim.new(2, 24),
   }
   self.fsm = fsm.new(states, "alive", self)
   return self
@@ -78,7 +80,16 @@ function player.update(self, input, dt, bounds)
   fsm.update(self.fsm, dt)
   anim.update(self.idle_anim, dt)
   anim.update(self.walk_anim, dt)
+  anim.update(self.shoot_anim, dt)
+  if self.recoil > 0 then
+    self.recoil = self.recoil - dt
+  end
   return self
+end
+
+function player.shoot(self)
+  self.recoil = 0.12
+  anim.restart(self.shoot_anim)
 end
 
 function player.take_damage(self, amount)

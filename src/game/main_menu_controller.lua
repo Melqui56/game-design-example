@@ -1,19 +1,18 @@
-local menu      = require("src.core.menu")
-local palette   = require("src.core.palette")
-local starfield = require("src.core.starfield")
-local backdrop  = require("src.fw.backdrop")
-local retro     = require("src.fw.retro")
-local save_io   = require("src.fw.save_io")
-local sfx       = require("src.fw.sfx")
-local ui        = require("src.fw.ui")
+local menu        = require("src.core.menu")
+local retro       = require("src.fw.retro")
+local title_scene = require("src.core.title_scene")
+local title_art   = require("src.fw.title_art")
+local save_io     = require("src.fw.save_io")
+local sfx         = require("src.fw.sfx")
 
 local main_menu = {}
 
 function main_menu.new(sm)
   return setmetatable({
     sm    = sm,
-    menu  = menu.new({ "Play", "Quit" }),
-    stars = starfield.new(50),
+    menu  = menu.new({ "Play", "How to Play", "Quit" }),
+    scene = title_scene.new(),
+    help  = false,
   }, { __index = main_menu })
 end
 
@@ -22,27 +21,43 @@ function main_menu.enter(_)
 end
 
 function main_menu.update(self, dt)
-  starfield.update(self.stars, dt)
+  title_scene.update(self.scene, dt)
+  if title_scene.fire_done(self.scene) then
+    self.sm:switch("play")
+  end
 end
 
 function main_menu.draw(self)
-  local w, h = retro.getDimensions()
-  backdrop.draw(palette, w, h)
-  for _, s in ipairs(self.stars.stars) do
-    love.graphics.setColor(palette.star[1], palette.star[2], palette.star[3])
-    love.graphics.rectangle("fill", s.x * w, s.y * h, s.size, s.size)
+  local alpha = title_scene.menu_alpha(self.scene)
+
+  title_art.background(self.scene)
+  title_art.hero(self.scene)
+  title_art.logo(self.scene)
+  title_art.menu(self.menu, self.scene, alpha)
+  title_art.footer(save_io.get("high_score", 0), "v0.1.0", alpha)
+  title_art.vignette()
+
+  if self.help then
+    title_art.help()
   end
-  ui.title("GAME DESIGN", w * 0.5, 40)
-  ui.title("EXAMPLE U", w * 0.5, 68)
-  ui.menu_items(self.menu, w * 0.5, 140, 26)
-  local best = save_io.get("high_score", 0)
-  if best > 0 then
-    ui.hud_text_centered("BEST " .. best, w * 0.5, 205)
-  end
-  ui.hud_text("v0.1.0", 4, h - 14)
+
+  local off = title_scene.shake_offset(self.scene)
+  retro.set_offset(off.x, off.y)
 end
 
 function main_menu.keypressed(self, key)
+  if self.help then
+    if key == "escape" or key == "return" or key == "kpenter" then
+      self.help = false
+      sfx.play("ui", 0.3)
+    end
+    return
+  end
+
+  if title_scene.firing(self.scene) then
+    return
+  end
+
   if key == "up" then
     menu.move(self.menu, -1)
     sfx.play("ui", 0.3)
@@ -51,11 +66,16 @@ function main_menu.keypressed(self, key)
     sfx.play("ui", 0.3)
   elseif key == "return" or key == "kpenter" then
     sfx.play("ui", 0.3)
-    if menu.current(self.menu) == "Play" then
-      self.sm:switch("play")
+    local choice = menu.current(self.menu)
+    if choice == "Play" then
+      title_scene.start_fire(self.scene)
+    elseif choice == "How to Play" then
+      self.help = true
     else
       love.event.quit()
     end
+  elseif key == "escape" then
+    self.help = true
   end
 end
 

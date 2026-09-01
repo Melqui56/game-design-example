@@ -5,9 +5,9 @@ local anim = require("src.core.anim")
 local enemy = {}
 
 enemy.TYPES = {
-  chaser = { speed = 90,  hp = 1, radius = 14, scale = 1.0 },
-  runner = { speed = 170, hp = 1, radius = 10, scale = 0.85 },
-  tank   = { speed = 55,  hp = 3, radius = 18, scale = 1.5 },
+  chaser = { speed = 90,  hp = 1, radius = 14, scale = 1.0, attack_range = 28 },
+  runner = { speed = 170, hp = 1, radius = 10, scale = 0.85, attack_range = 24 },
+  tank   = { speed = 55,  hp = 3, radius = 18, scale = 1.5, attack_range = 32 },
 }
 
 local states = {
@@ -15,6 +15,7 @@ local states = {
     update = function(self, dt)
       local delta = vec2.sub(self.target, self.position)
       local dist  = vec2.length(delta)
+      self.attacking = dist <= self.attack_range
       local step  = self.speed * dt
       if step >= dist then
         self.position.x = self.target.x
@@ -52,9 +53,12 @@ function enemy.new(kind, x, y, opts)
     radius   = o.radius or t.radius,
     scale    = o.scale or t.scale,
     target   = { x = 0, y = 0 },
+    attack_range = o.attack_range or t.attack_range,
+    attacking = false,
     dead     = false,
     flash    = false,
-    anim     = anim.new(2, 5),
+    walk_anim   = anim.new(2, 5),
+    attack_anim = anim.new(2, 10),
   }
   self.fsm = fsm.new(states, "chase", self)
   return self
@@ -63,7 +67,8 @@ end
 function enemy.update(self, target, dt)
   self.target = target
   fsm.update(self.fsm, dt)
-  anim.update(self.anim, dt)
+  anim.update(self.walk_anim, dt)
+  anim.update(self.attack_anim, dt)
   return self
 end
 

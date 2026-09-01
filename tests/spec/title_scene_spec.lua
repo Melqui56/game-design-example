@@ -1,0 +1,62 @@
+local title_scene = require("src.core.title_scene")
+
+local function fixed_rng(_n)
+  return 0.5
+end
+
+describe("title_scene", function()
+  it("starts with the logo hidden (intro 0)", function()
+    local s = title_scene.new({ rng = fixed_rng })
+    assert.are.equal(0, s.intro)
+    local l = title_scene.logo(s)
+    assert.are.equal(0, l.alpha)
+  end)
+
+  it("intro eases to 1 over time", function()
+    local s = title_scene.new({ rng = fixed_rng })
+    title_scene.update(s, 1.6, fixed_rng)
+    assert.are.near(1, s.intro, 0.001)
+  end)
+
+  it("plays the idle hero set before firing", function()
+    local s = title_scene.new({ rng = fixed_rng })
+    local set = title_scene.hero_frame(s)
+    assert.are.equal("hero_idle", set)
+  end)
+
+  it("switches to the draw set while firing", function()
+    local s = title_scene.new({ rng = fixed_rng })
+    assert.is_true(title_scene.start_fire(s))
+    local set = title_scene.hero_frame(s)
+    assert.are.equal("hero_draw", set)
+  end)
+
+  it("ignores a second start_fire while one is running", function()
+    local s = title_scene.new({ rng = fixed_rng })
+    title_scene.start_fire(s)
+    assert.is_false(title_scene.start_fire(s))
+  end)
+
+  it("reports the flourish finished after FIRE_END", function()
+    local s = title_scene.new({ rng = fixed_rng })
+    title_scene.start_fire(s)
+    title_scene.update(s, 0.7, fixed_rng)
+    assert.is_true(title_scene.fire_done(s))
+  end)
+
+  it("muzzle flash peaks after the shot and fades", function()
+    local s = title_scene.new({ rng = fixed_rng })
+    title_scene.start_fire(s)
+    assert.are.equal(0, title_scene.muzzle(s))
+    title_scene.update(s, 0.25, fixed_rng)
+    assert.is_true(title_scene.muzzle(s) > 0)
+    title_scene.update(s, 0.6, fixed_rng)
+    assert.are.equal(0, title_scene.muzzle(s))
+  end)
+
+  it("menu fades in after the intro", function()
+    local s = title_scene.new({ rng = fixed_rng })
+    title_scene.update(s, 1.6, fixed_rng)
+    assert.is_true(title_scene.menu_alpha(s) > 0.99)
+  end)
+end)
