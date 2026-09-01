@@ -25,10 +25,10 @@ local HORIZON = 152
 -- Box-art composition: the bust bleeds off the bottom left, the logo sits in
 -- a block across the top right, the menu comes in under it on the diagonal.
 local PORTRAIT_X     = -2
-local PORTRAIT_Y     = 70
+local PORTRAIT_Y     = 104
 local PORTRAIT_SCALE = 2
-local GUN_OX         = 58      -- gun sprite origin, in bust pixels
-local GUN_OY         = 18      -- (fist at body px 66,52 minus the 8,34 grip pivot)
+local GUN_OX         = 28      -- gun sprite origin, in bust pixels; muzzle of
+local GUN_OY         = 25      -- idle frame 1 lands on body px (54,35)
 
 local MENU_X    = 278
 local MENU_Y    = 152
@@ -387,10 +387,10 @@ end
 
 -- Anchors into the portrait art, in sprite pixels. See assets/sprites/hero.lua:
 -- the eye sits in the bust, the muzzle in whichever revolver frame is up.
-local EYE_PX  = { 32, 42 }
+local EYE_PX  = { 34, 26 }
 local MUZZLE_PX = {
-  hero_idle = { { 27, 12 }, { 27, 11 } },
-  hero_draw = { { 24, 8 }, { 19, 3 } },
+  hero_idle = { { 26, 10 }, { 26, 9 } },
+  hero_draw = { { 21, 6 }, { 16, 2 } },
 }
 
 function title_art.hero(st)
@@ -406,10 +406,10 @@ function title_art.hero(st)
   local y = math.floor(PORTRAIT_Y + h.dy + h.bob)
 
   -- the sunset burning behind him, and a slab of shadow he stands against
-  blob(x + 74, y + 70, 132, palette.sky_ember, 0.30 * h.alpha)
+  blob(x + 56, y + 80, 132, palette.sky_ember, 0.30 * h.alpha)
   set_color(palette.outline, 0.30 * h.alpha)
-  love.graphics.polygon("fill", x - 8, VH, x + 18, y - 6, x + 154, y - 6,
-    x + 184, VH)
+  love.graphics.polygon("fill", x - 8, VH, x + 14, y - 6, x + 110, y - 6,
+    x + 132, VH)
 
   love.graphics.setColor(1, 1, 1, h.alpha)
   love.graphics.draw(img, body, x, y, 0, s, s)
